@@ -4,6 +4,7 @@ const messageSchema = new mongoose.Schema({
   role: { type: String, enum: ['user', 'assistant'], required: true },
   content: { type: String, required: true, maxlength: 4000 },
   suggestedActions: [String],
+  recommendedDestinations: [mongoose.Schema.Types.Mixed],
   model: String,
   fallbackUsed: { type: Boolean, default: false },
 }, { timestamps: true });

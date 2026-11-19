@@ -2,7 +2,7 @@ import React from 'react';
 import { Platform, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
-function mapHtml(routeDay) {
+function mapHtml(routeDay, customUserLocation = null) {
   const inPakistan = (latitude, longitude) => Number.isFinite(latitude) && Number.isFinite(longitude)
     && latitude >= 23.4 && latitude <= 37.2 && longitude >= 60.8 && longitude <= 77.9;
 
@@ -20,7 +20,12 @@ function mapHtml(routeDay) {
       lon: Number(item.longitude),
     }));
 
-  const data = JSON.stringify({ route, markers, status: routeDay?.status }).replace(/</g, '\\u003c');
+  const data = JSON.stringify({
+    route,
+    markers,
+    status: routeDay?.status,
+    userLocation: customUserLocation || null,
+  }).replace(/</g, '\\u003c');
 
   return `<!doctype html>
 <html>
@@ -47,6 +52,14 @@ function mapHtml(routeDay) {
       box-shadow: 0 3px 6px rgba(0,0,0,0.35);
       text-align: center;
       line-height: 24px;
+    }
+    .user-pulse-marker {
+      background: #2563eb;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 12px rgba(37,99,235,0.75);
     }
     .leaflet-popup-content-wrapper { border-radius: 12px; padding: 4px; box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
     .popup-title { font-weight: 800; font-size: 13px; color: #153226; margin-bottom: 2px; }
@@ -99,13 +112,47 @@ function mapHtml(routeDay) {
     });
 
     const allPoints = (data.route && data.route.length) ? data.route : data.markers.map(m => [m.lat, m.lon]);
-    if (allPoints.length) {
-      map.fitBounds(allPoints, { padding: [35, 35], maxZoom: 15 });
-    } else {
-      map.setView([36.3167, 74.65], 9);
+
+    // Live Geolocation Handling (Real-Time Location)
+    function renderUserLocation(lat, lon, accuracy) {
+      const userIcon = L.divIcon({
+        className: '',
+        html: '<div class="user-pulse-marker"></div>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+      });
+      L.marker([lat, lon], { icon: userIcon, zIndexOffset: 1000 })
+        .addTo(map)
+        .bindPopup('<div class="popup-title">[Current Location]</div><div class="popup-time">Real-time user position</div>');
+      if (accuracy) {
+        L.circle([lat, lon], { radius: Math.min(accuracy / 2, 5000), color: '#3b82f6', fillOpacity: 0.12, weight: 1.5 }).addTo(map);
+      }
     }
 
-    // Trigger Leaflet resize after initial layout
+    if (data.userLocation && data.userLocation.latitude && data.userLocation.longitude) {
+      renderUserLocation(data.userLocation.latitude, data.userLocation.longitude, data.userLocation.accuracy || 100);
+      if (!allPoints.length) {
+        map.setView([data.userLocation.latitude, data.userLocation.longitude], 12);
+      }
+    } else {
+      map.locate({ setView: false, maxZoom: 14, enableHighAccuracy: true });
+      map.on('locationfound', function(e) {
+        renderUserLocation(e.latlng.lat, e.latlng.lng, e.accuracy);
+        if (!allPoints.length) {
+          map.setView(e.latlng, 12);
+        }
+      });
+      map.on('locationerror', function() {
+        if (!allPoints.length) {
+          map.setView([30.3753, 69.3451], 6);
+        }
+      });
+    }
+
+    if (allPoints.length) {
+      map.fitBounds(allPoints, { padding: [35, 35], maxZoom: 15 });
+    }
+
     setTimeout(() => { map.invalidateSize(); }, 250);
   } catch (err) {
     console.error('Leaflet initialization error:', err);
@@ -115,11 +162,11 @@ function mapHtml(routeDay) {
 </html>`;
 }
 
-export default function OpenStreetMap({ routeDay, height = 320 }) {
-  const html = mapHtml(routeDay);
+export default function OpenStreetMap({ routeDay, userLocation = null, height = 320 }) {
+  const html = mapHtml(routeDay, userLocation);
   if (Platform.OS === 'web') {
     return React.createElement('iframe', {
-      title: 'OpenStreetMap itinerary route',
+      title: 'OpenStreetMap itinerary route and live location',
       srcDoc: html,
       style: { width: '100%', height, border: 0, display: 'block', backgroundColor: '#eaf1ea' },
     });

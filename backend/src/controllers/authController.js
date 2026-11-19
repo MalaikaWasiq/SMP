@@ -49,6 +49,11 @@ async function signup(req, res, next) {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    const GMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
+    if (!GMAIL_REGEX.test(normalizedEmail)) {
+      throw httpError(400, 'Only valid Gmail addresses (@gmail.com) are permitted. Example: username@gmail.com');
+    }
+
     const existing = await User.findOne({ email: normalizedEmail });
 
     if (existing) {
@@ -87,7 +92,13 @@ async function login(req, res, next) {
       throw httpError(400, 'Email and password are required');
     }
 
-    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    const normalizedEmail = email.trim().toLowerCase();
+    const GMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
+    if (!GMAIL_REGEX.test(normalizedEmail)) {
+      throw httpError(400, 'Please enter a valid Gmail address (@gmail.com)');
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       throw httpError(401, 'Incorrect email or password');

@@ -1,0 +1,202 @@
+{
+  "islamabad": {
+    "regionName": "Islamabad / Rawalpindi (Capital Territory)",
+    "description": "Authentic Twin Cities cuisine featuring traditional breakfast spreads, savory karahis, and charcoal-grilled BBQ.",
+    "currency": "PKR",
+    "breakfast": {
+      "title": "Margalla Morning Feast",
+      "defaultPricePerPerson": 450,
+      "menuSummary": "Halwa Puri Thali with Chana • Crispy Lacha Paratha • Farm Fresh Eggs / Omelette • Peshawari Green Tea (Kahwa) • Traditional Karak Chai",
+      "items": [
+        { "id": "isb_b1", "name": "Halwa Puri Thali with Chana", "price": 350 },
+        { "id": "isb_b2", "name": "Crispy Lacha Paratha", "price": 150 },
+        { "id": "isb_b3", "name": "Farm Fresh Eggs / Omelette", "price": 150 },
+        { "id": "isb_b4", "name": "Lahori Chana Plate", "price": 200 },
+        { "id": "isb_b5", "name": "Toasted Bread with Butter & Jam", "price": 200 },
+        { "id": "isb_b6", "name": "Peshawari Green Tea (Kahwa)", "price": 100 },
+        { "id": "isb_b7", "name": "Traditional Karak Chai", "price": 120 }
+      ]
+    },
+    "lunch": {
+      "title": "Rawal Dam Karahi & Daal",
+      "defaultPricePerPerson": 850,
+      "menuSummary": "Desi Murgh Karahi • Tarka Daal Mash • Steamed Zeera Basmati Rice • Fresh Tandoori Roti • Kachumber Salad & Mint Raita",
+      "items": [
+        { "id": "isb_l1", "name": "Desi Murgh Karahi", "price": 850 },
+        { "id": "isb_l2", "name": "Tarka Daal Mash / Chana Daal", "price": 350 },
+        { "id": "isb_l3", "name": "Steamed Zeera Basmati Rice", "price": 250 },
+        { "id": "isb_l4", "name": "Fresh Tandoori Roti", "price": 40 },
+        { "id": "isb_l5", "name": "Kachumber Salad & Mint Raita", "price": 100 }
+      ]
+    },
+    "dinner": {
+      "title": "Centaurus & Super Market Charcoal BBQ",
+      "defaultPricePerPerson": 1200,
+      "menuSummary": "Charcoal Chicken Tikka & Seekh Kabab BBQ • Creamy Chicken Handi • Matka Biryani with Gravy • Roghani Naan • Cardamom Green Tea",
+      "items": [
+        { "id": "isb_d1", "name": "Charcoal Chicken Tikka & Seekh Kabab BBQ", "price": 950 },
+        { "id": "isb_d2", "name": "Creamy Chicken Handi", "price": 900 },
+        { "id": "isb_d3", "name": "Matka Biryani with Gravy", "price": 600 },
+        { "id": "isb_d4", "name": "Roghani Naan", "price": 60 },
+        { "id": "isb_d5", "name": "Cardamom Green Tea", "price": 100 }
+      ]
+    }
+  },
+  "northern_areas": {
+    "regionName": "Northern Areas (Hunza, Skardu, Swat, Naran, Gilgit, Chitral, Neelum)",
+    "description": "Hearty alpine mountain cuisine with organic local breads, freshwater trout, shinwari mutton, and pink tea.",
+    "currency": "PKR",
+    "breakfast": {
+      "title": "Mountain Sunrise Feast & Pink Tea",
+      "defaultPricePerPerson": 480,
+      "menuSummary": "Desi Ghee Paratha • Organic Mountain Eggs • Pink Kashmiri / Noon Chai • Local Buckwheat / Khamiri Bread • Organic Honey & Fresh Apricot Jam",
+      "items": [
+        { "id": "north_b1", "name": "Desi Ghee Paratha", "price": 200 },
+        { "id": "north_b2", "name": "Organic Mountain Eggs (Fried/Omelette)", "price": 150 },
+        { "id": "north_b3", "name": "Pink Kashmiri / Noon Chai", "price": 180 },
+        { "id": "north_b4", "name": "Local Buckwheat / Khamiri Bread", "price": 150 },
+        { "id": "north_b5", "name": "Organic Honey & Fresh Apricot Jam", "price": 200 }
+      ]
+    },
+    "lunch": {
+      "title": "River Trout & Shinwari Namkeen Karahi",
+      "defaultPricePerPerson": 950,
+      "menuSummary": "Fresh Glacial River Trout • Shinwari Namkeen Karahi • Steamed White Basmati Rice • Hot Tandoori Roti • Alpine Mountain Lentil Soup",
+      "items": [
+        { "id": "north_l1", "name": "Fresh Glacial River Trout", "price": 950 },
+        { "id": "north_l2", "name": "Shinwari Namkeen Karahi", "price": 900 },
+        { "id": "north_l3", "name": "Steamed White Basmati Rice", "price": 250 },
+        { "id": "north_l4", "name": "Hot Tandoori Roti", "price": 50 },
+        { "id": "north_l5", "name": "Alpine Mountain Lentil Soup", "price": 300 }
+      ]
+    },
+    "dinner": {
+      "title": "Balti Cultural Campfire BBQ Feast",
+      "defaultPricePerPerson": 1350,
+      "menuSummary": "Traditional Hunza / Balti Cultural Feast • Campfire Chicken Charcoal BBQ • Mountain Herb Chicken Roast • Roghani Tandoori Naan • Walnut & Apricot Kheer",
+      "items": [
+        { "id": "north_d1", "name": "Traditional Hunza / Balti Cultural Feast", "price": 1050 },
+        { "id": "north_d2", "name": "Campfire Chicken Charcoal BBQ", "price": 1100 },
+        { "id": "north_d3", "name": "Mountain Herb Chicken Roast", "price": 850 },
+        { "id": "north_d4", "name": "Roghani Tandoori Naan", "price": 60 },
+        { "id": "north_d5", "name": "Walnut & Apricot Kheer", "price": 250 }
+      ]
+    }
+  },
+  "karachi": {
+    "regionName": "Karachi & Coastal Ports (Gwadar, Kund Malir, Ormara)",
+    "description": "World-famous coastal cuisine celebrated for Karachi Biryani, slow-cooked beef nihari, and fresh Arabian sea seafood.",
+    "currency": "PKR",
+    "breakfast": {
+      "title": "Burns Road Coastal Breakfast",
+      "defaultPricePerPerson": 520,
+      "menuSummary": "Javed Famous Beef Nihari with Sheermal & Naan • Authentic Karachi Halwa Puri & Tarkari • Burns Road Anda Paratha with Chai • Special Doodh Patti / Cardamom Chai",
+      "items": [
+        { "id": "khi_b1", "name": "Burns Road Beef Nihari with Ginger & Lemon", "price": 520 },
+        { "id": "khi_b2", "name": "Karachi Halwa Puri Thali", "price": 350 },
+        { "id": "khi_b3", "name": "Crispy Malabar / Plain Paratha", "price": 150 },
+        { "id": "khi_b4", "name": "Doodh Patti Karak Chai", "price": 100 }
+      ]
+    },
+    "lunch": {
+      "title": "Clifton Waterfront Seafood & Biryani",
+      "defaultPricePerPerson": 1150,
+      "menuSummary": "Authentic Karachi Student Biryani (Chicken/Beef) • Fried Pomfret Fish with Tarter Chutney • Chicken Karahi (Burns Road Style) • Fresh Green Salad & Mint Zeera Raita",
+      "items": [
+        { "id": "khi_l1", "name": "Authentic Karachi Chicken Biryani with Aloo", "price": 550 },
+        { "id": "khi_l2", "name": "Highway White Chicken Karahi", "price": 850 },
+        { "id": "khi_l3", "name": "Fresh Cucumber Salad & Zeera Raita", "price": 120 },
+        { "id": "khi_l4", "name": "Soft Tandoori Naan", "price": 50 }
+      ]
+    },
+    "dinner": {
+      "title": "Do Darya Ocean Deck Dinner",
+      "defaultPricePerPerson": 1650,
+      "menuSummary": "Arabian Sea Grilled Jumbo Prawns & Fish • Charcoal Chicken Malai Tikka & Bihari Kabab • Matka Kheer & Gulab Jamun • Sulaimani Kahwa (Lemon & Mint)",
+      "items": [
+        { "id": "khi_d1", "name": "Fresh Arabian Sea Fried Fish / Grilled Prawns", "price": 1650 },
+        { "id": "khi_d2", "name": "Port Grand Chicken Malai Boti BBQ", "price": 950 },
+        { "id": "khi_d3", "name": "Mutton Seekh Kabab Platter", "price": 1000 },
+        { "id": "khi_d4", "name": "Sesame Roghani Naan", "price": 60 },
+        { "id": "khi_d5", "name": "Peshawari Kahwa", "price": 100 }
+      ]
+    }
+  },
+  "punjab": {
+    "regionName": "Punjab & Cultural Heritage (Lahore, Multan, Bahawalpur, Faisalabad, Taxila)",
+    "description": "Rich Punjabi cuisine celebrated for slow-simmered paye, aromatic pulaos, Butt karahi, and rich milk sweets.",
+    "currency": "PKR",
+    "breakfast": {
+      "title": "Lahori Halwa Puri & Siri Paye",
+      "defaultPricePerPerson": 500,
+      "menuSummary": "Lahori Siri Paye / Nihari • Gawal Mandi Special Halwa Puri • Thandi Sweet / Salty Lassi • Desi Ghee Paratha",
+      "items": [
+        { "id": "pjb_b1", "name": "Lahori Siri Paye / Nihari", "price": 550 },
+        { "id": "pjb_b2", "name": "Gawal Mandi Special Halwa Puri", "price": 350 },
+        { "id": "pjb_b3", "name": "Thandi Sweet / Salty Lassi", "price": 200 },
+        { "id": "pjb_b4", "name": "Desi Ghee Paratha", "price": 180 }
+      ]
+    },
+    "lunch": {
+      "title": "Anarkali Degi Murgh Pulao & Karahi",
+      "defaultPricePerPerson": 850,
+      "menuSummary": "Degi Murgh Pulao / Biryani • Dal Makhni with Butter Tarka • Tawa Chicken / Karahi • Kulcha / Tandoori Roti",
+      "items": [
+        { "id": "pjb_l1", "name": "Degi Murgh Pulao / Biryani", "price": 600 },
+        { "id": "pjb_l2", "name": "Dal Makhni with Butter Tarka", "price": 400 },
+        { "id": "pjb_l3", "name": "Tawa Chicken / Karahi", "price": 750 },
+        { "id": "pjb_l4", "name": "Kulcha / Tandoori Roti", "price": 50 }
+      ]
+    },
+    "dinner": {
+      "title": "Lakshmi Chowk Royal BBQ Feast",
+      "defaultPricePerPerson": 1250,
+      "menuSummary": "Lakshmi Chowk Butt Karahi • Balochi Sajji with Spiced Rice • Seekh Kabab & Reshmi Kabab Platter • Garlic Roghani Naan • Multani Sohan Halwa",
+      "items": [
+        { "id": "pjb_d1", "name": "Lakshmi Chowk Butt Karahi", "price": 1100 },
+        { "id": "pjb_d2", "name": "Balochi Sajji with Spiced Rice", "price": 950 },
+        { "id": "pjb_d3", "name": "Seekh Kabab & Reshmi Kabab Platter", "price": 950 },
+        { "id": "pjb_d4", "name": "Garlic Roghani Naan", "price": 60 },
+        { "id": "pjb_d5", "name": "Multani Sohan Halwa / Kheer Bowl", "price": 250 }
+      ]
+    }
+  },
+  "standard": {
+    "regionName": "Standard Pakistani Regional Cuisine",
+    "description": "Quality balanced traditional Pakistani travel meals prepared freshly along tourist routes.",
+    "currency": "PKR",
+    "breakfast": {
+      "title": "Traditional Pakistani Breakfast Spread",
+      "defaultPricePerPerson": 450,
+      "menuSummary": "Crispy Paratha with Omelette • Halwa Puri Platter • Chana Masala Bowl • Traditional Milk Tea",
+      "items": [
+        { "id": "std_b1", "name": "Crispy Paratha with Omelette", "price": 300 },
+        { "id": "std_b2", "name": "Halwa Puri Platter", "price": 350 },
+        { "id": "std_b3", "name": "Chana Masala Bowl", "price": 200 },
+        { "id": "std_b4", "name": "Traditional Milk Tea", "price": 100 }
+      ]
+    },
+    "lunch": {
+      "title": "Highway Karahi & Basmati Rice",
+      "defaultPricePerPerson": 850,
+      "menuSummary": "Chicken Karahi / Handi • Basmati Rice with Lentils • Fresh Tandoori Roti • Salad & Raita",
+      "items": [
+        { "id": "std_l1", "name": "Chicken Karahi / Handi", "price": 850 },
+        { "id": "std_l2", "name": "Basmati Rice with Lentils", "price": 350 },
+        { "id": "std_l3", "name": "Fresh Tandoori Roti", "price": 40 },
+        { "id": "std_l4", "name": "Salad & Raita", "price": 100 }
+      ]
+    },
+    "dinner": {
+      "title": "Mixed Charcoal BBQ & Karahi Dinner",
+      "defaultPricePerPerson": 1200,
+      "menuSummary": "Mixed Charcoal BBQ Platter • Special Chicken Karahi • Roghani Naan Basket • Peshawari Green Tea",
+      "items": [
+        { "id": "std_d1", "name": "Mixed Charcoal BBQ Platter", "price": 1000 },
+        { "id": "std_d2", "name": "Special Chicken Karahi", "price": 900 },
+        { "id": "std_d3", "name": "Roghani Naan Basket", "price": 60 },
+        { "id": "std_d4", "name": "Green Tea / Chai", "price": 100 }
+      ]
+    }
+  }
+}

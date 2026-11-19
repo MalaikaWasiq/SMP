@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -117,7 +118,7 @@ const BUDGET_PRESETS = [40000, 75000, 120000, 200000];
 const COMFORT_LEVELS = [
   { id: 'Basic', label: 'Budget', badge: 'Economy', desc: 'Budget-friendly hotels & transit' },
   { id: 'Normal', label: 'Standard', badge: 'Standard', desc: 'Comfortable mid-range choices' },
-  { id: 'Luxury', label: 'Premium', badge: 'Luxury', desc: '4-5★ resorts & private transit' },
+  { id: 'Luxury', label: 'Premium', badge: 'Luxury', desc: '4-5 Star resorts & private transit' },
 ];
 
 const CATEGORY_ROUTES_MAP = {
@@ -625,7 +626,19 @@ export default function TripPlanningScreen({ navigation, route }) {
   const [femaleCount, setFemaleCount] = useState(0);
   const [vehicleType, setVehicleType] = useState('Economy-Alto');
   const [vehicleDropdownOpen, setVehicleDropdownOpen] = useState(false);
-  const driverRequired = false; // Licensed mountain driver option removed
+  const [driverRequired, setDriverRequired] = useState(true);
+
+  // Dynamic destination-specific food menu
+  const [foodMenuData, setFoodMenuData] = useState(null);
+  const [foodMenuLoading, setFoodMenuLoading] = useState(false);
+  const [selectedDishes, setSelectedDishes] = useState({ breakfast: [], lunch: [], dinner: [] });
+
+  // Priority budget shortfall proposal interactive modal
+  const [shortfallModalVisible, setShortfallModalVisible] = useState(false);
+  const [activeShortfallProposal, setActiveShortfallProposal] = useState(null);
+
+  // Live GPS Geolocation
+  const [gpsLoading, setGpsLoading] = useState(false);
 
   // Travel Style
   const [travelType, setTravelType] = useState('Family');
@@ -1107,52 +1120,62 @@ export default function TripPlanningScreen({ navigation, route }) {
     }
   }, [matchingVehicles, vehicleType]);
 
-  // Vehicle & Transport calculations (Driver allowance removed)
+  // Multi-vehicle and transport calculation
   const currentVehicle = matchingVehicles.find((v) => v.id === vehicleType) || RENTAL_VEHICLES.find((v) => v.id === vehicleType) || RENTAL_VEHICLES[0];
-  const driverCharges = 0;
-  const vehicleRentTotal = (!isTransportNeeded || isOwnCar) ? 0 : currentVehicle.rentPerDay * (numDays || 1);
-  const vehicleFuelTotal = (!isTransportNeeded || isOwnCar) ? 0 : currentVehicle.fuelPerDay * (numDays || 1);
-  const tollParkingEstimate = (!isTransportNeeded || isOwnCar) ? 0 : 800 * (numDays || 1);
-  const rawVehicleCost = !isTransportNeeded ? 0 : (isOwnCar ? 0 : (vehicleRentTotal + vehicleFuelTotal + tollParkingEstimate));
-  const estimatedVehicleCost = !isTransportNeeded ? 0 : (isOwnCar ? 0 : (
-    isLowBudget && allocTransport > 0
-      ? Math.min(rawVehicleCost, allocTransport)
-      : ((allocTransport > 0 && isCompany) ? Math.min(rawVehicleCost, allocTransport) : rawVehicleCost)
-  ));
+  const vehicleCapacity = currentVehicle.maxPersons || 4;
+  const vehiclesRequired = Math.max(1, Math.ceil(numPersons / vehicleCapacity));
+  const vehicleRentTotal = (!isTransportNeeded || isOwnCar) ? 0 : (vehiclesRequired * currentVehicle.rentPerDay * (numDays || 1));
+  const vehicleFuelTotal = (!isTransportNeeded || isOwnCar) ? 0 : (vehiclesRequired * currentVehicle.fuelPerDay * (numDays || 1));
+  const driverCharges = (!isTransportNeeded || isOwnCar || !driverRequired) ? 0 : (vehiclesRequired * 2000 * (numDays || 1));
+  const tollParkingEstimate = (!isTransportNeeded || isOwnCar) ? 0 : (vehiclesRequired * 800 * (numDays || 1));
+  const rawVehicleCost = (!isTransportNeeded || isOwnCar) ? 0 : (vehicleRentTotal + vehicleFuelTotal + driverCharges + tollParkingEstimate);
 
   // Hotel calculations (room price * nights * roomsQuantity)
-  // In low budget mode, stay is managed so it never exceeds the hotel allocation (e.g. 50% of budget)
   const roomPricePerNight = selectedRoom?.price || selectedRoom?.pricePerNight || selectedHotel?.pricePerNight || 3200;
-  const rawHotelCost = roomPricePerNight * nights * roomsQuantity;
-  const hotelTotalCost = (!hotelRequired || !isHotelNeeded)
+  const rawHotelCost = (!hotelRequired || !isHotelNeeded)
     ? 0
-    : (selectedHotel
-        ? (isLowBudget && allocHotel > 0 ? Math.min(rawHotelCost, allocHotel) : rawHotelCost)
-        : 0);
+    : (roomPricePerNight * nights * roomsQuantity);
 
-  // Food calculations (Breakfast, Lunch, Dinner itemized)
-  // Supervisor Rule: If budget is low, system manages stay & transport, customer handles food on their own (PKR 0)
-  const breakfastRate = 450;
-  const lunchRate = 850;
-  const dinnerRate = 1200;
+  // Food calculations: destination menu item prices or standard breakfast/lunch/dinner
+  const destinationBfPrice = foodMenuData?.menu?.breakfast?.defaultPricePerPerson || foodMenuData?.menu?.breakfast?.items?.[0]?.price || 450;
+  const destinationLunchPrice = foodMenuData?.menu?.lunch?.defaultPricePerPerson || foodMenuData?.menu?.lunch?.items?.[0]?.price || 850;
+  const destinationDinnerPrice = foodMenuData?.menu?.dinner?.defaultPricePerPerson || foodMenuData?.menu?.dinner?.items?.[0]?.price || 1200;
+
   let dailyMealRate = 0;
-  if (!isFoodNeeded || isLowBudget) {
+  if (!foodRequired || !isFoodNeeded || foodChoice === 'self') {
     dailyMealRate = 0;
   } else if (isCompany) {
-    dailyMealRate = breakfastRate + dinnerRate; // Breakfast & Dinner included in Company package
+    dailyMealRate = destinationBfPrice + destinationDinnerPrice; // Daily breakfast buffet and gourmet dinner included in Company Package
   } else {
-    if (selectedMeals.breakfast) dailyMealRate += breakfastRate;
-    if (selectedMeals.lunch) dailyMealRate += lunchRate;
-    if (selectedMeals.dinner) dailyMealRate += dinnerRate;
+    // Customized mode: sum dishes or meal toggles
+    let dishRate = 0;
+    if (selectedDishes.breakfast.length > 0) {
+      dishRate += selectedDishes.breakfast.reduce((s, d) => s + (d.price || 0), 0);
+    } else if (selectedMeals.breakfast) {
+      dishRate += destinationBfPrice;
+    }
+
+    if (selectedDishes.lunch.length > 0) {
+      dishRate += selectedDishes.lunch.reduce((s, d) => s + (d.price || 0), 0);
+    } else if (selectedMeals.lunch) {
+      dishRate += destinationLunchPrice;
+    }
+
+    if (selectedDishes.dinner.length > 0) {
+      dishRate += selectedDishes.dinner.reduce((s, d) => s + (d.price || 0), 0);
+    } else if (selectedMeals.dinner) {
+      dishRate += destinationDinnerPrice;
+    }
+
+    dailyMealRate = dishRate;
   }
   const rawFoodCost = dailyMealRate * numPersons * (numDays || 1);
-  const foodTotalCost = (isFoodNeeded && !isLowBudget) ? (allocFood > 0 && isCompany ? Math.min(rawFoodCost, allocFood) : rawFoodCost) : 0;
 
   // Optional Activities calculations
-  const calculatedActivitiesCost = (!isActivitiesNeeded || isLowBudget)
+  const calculatedActivitiesCost = (!isActivitiesNeeded)
     ? 0
     : (isCompany
-      ? Math.round(numBudget * 0.10)
+      ? 0
       : selectedOptionalActivities.reduce((sum, actId) => {
           const item = currentActivitiesList.find((a) => a.id === actId);
           if (!item) return sum;
@@ -1160,13 +1183,218 @@ export default function TripPlanningScreen({ navigation, route }) {
           return sum + cost;
         }, 0));
 
-  // Total Incurred vs Budget (Guaranteed strictly <= budget in low budget mode)
-  const calculatedTotal = estimatedVehicleCost + hotelTotalCost + foodTotalCost + calculatedActivitiesCost + companyProfit;
-  const totalIncurred = isLowBudget && numBudget > 0 ? Math.min(numBudget, calculatedTotal) : calculatedTotal;
-  const remainingBudget = Math.max(0, numBudget - totalIncurred);
-  const budgetShortfall = Math.max(0, totalIncurred - numBudget);
-  const budgetExceeded = totalIncurred > numBudget && numBudget > 0;
-  const perPersonIncurred = Math.round(totalIncurred / Math.max(1, numPersons));
+  // Dynamic destination-specific food menu fetch
+  useEffect(() => {
+    if (!destination || !destination.trim()) return;
+    let active = true;
+
+    async function fetchMenu() {
+      setFoodMenuLoading(true);
+      try {
+        const res = await apiRequest(`/budget/food-menu?destination=${encodeURIComponent(destination.trim())}`);
+        if (active && res && res.menu) {
+          setFoodMenuData(res);
+          // Automatically reset selected dishes on destination change (Supervisor Test J)
+          setSelectedDishes({ breakfast: [], lunch: [], dinner: [] });
+        }
+      } catch (err) {
+        // Fallback gracefully
+      } finally {
+        if (active) setFoodMenuLoading(false);
+      }
+    }
+
+    fetchMenu();
+    return () => { active = false; };
+  }, [destination]);
+
+  // Live GPS Geolocation
+  async function handleUseGpsLocation() {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      notifyUser('GPS Unavailable', 'Geolocation is not supported by your current browser or device.');
+      return;
+    }
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, {
+            headers: { 'User-Agent': 'SmartTravelPlanner-App/1.0' },
+          });
+          const data = await res.json();
+          const city = data?.address?.city || data?.address?.town || data?.address?.county || data?.address?.state || 'Current Location';
+          setStartLocation(city);
+          notifyUser('Live Location Detected', `Your starting origin is set to ${city}.`);
+        } catch (_) {
+          setStartLocation('Current Location');
+        } finally {
+          setGpsLoading(false);
+        }
+      },
+      () => {
+        setGpsLoading(false);
+        notifyUser('Location Access', 'Could not access GPS location. Please allow location permissions or type your city.');
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  }
+
+  // Handle user response to shortfall proposal
+  function handleApplyShortfallOption(opt) {
+    if (opt.adjustedDays) {
+      setDays(String(opt.adjustedDays));
+      setEndDate(computeEndDate(startDate, opt.adjustedDays));
+      notifyUser('Trip Adjusted', `Journey duration updated to ${opt.adjustedDays} days to fit within your budget.`);
+    }
+    if (opt.selfManaged) {
+      if (activeShortfallProposal?.service === 'transport') setTransportChoice('own');
+      if (activeShortfallProposal?.service === 'food') setFoodChoice('self');
+      if (activeShortfallProposal?.service === 'hotel') setHotelRequired(false);
+      notifyUser('Service Adjusted', 'Service set to self-arranged (cost PKR 0 in package).');
+    }
+    if (opt.comfortLevel) {
+      setComfortLevel(opt.comfortLevel);
+      notifyUser('Hotel Tier Adjusted', 'Updated to budget-friendly lodging.');
+    }
+    setShortfallModalVisible(false);
+  }
+
+  // PRIORITY SEQUENTIAL BUDGET ENGINE (Priority 1: Transport -> Priority 2: Food -> Priority 3: Hotel -> Priority 4: Activities)
+  const priorityResult = useMemo(() => {
+    let unallocated = numBudget;
+    const breakdown = {
+      transport: { allocatedCost: 0, actualCost: rawVehicleCost, status: 'unselected', details: '', isSelfManaged: isOwnCar },
+      food: { allocatedCost: 0, actualCost: rawFoodCost, status: 'unselected', details: '', isSelfManaged: (!foodRequired || foodChoice === 'self') },
+      hotel: { allocatedCost: 0, actualCost: rawHotelCost, status: 'unselected', details: '', isSelfManaged: (!hotelRequired || !isHotelNeeded) },
+      activities: { allocatedCost: 0, actualCost: calculatedActivitiesCost, status: 'unselected', details: '' },
+    };
+    const proposals = [];
+
+    // Priority 1: Transport
+    if (isTransportNeeded && !isOwnCar && rawVehicleCost > 0) {
+      if (unallocated >= rawVehicleCost) {
+        breakdown.transport.allocatedCost = rawVehicleCost;
+        breakdown.transport.status = 'covered';
+        breakdown.transport.details = `${vehiclesRequired} x ${currentVehicle.name} (${vehicleCapacity} seats) for ${numDays || 1} days`;
+        unallocated -= rawVehicleCost;
+      } else {
+        breakdown.transport.allocatedCost = rawVehicleCost;
+        breakdown.transport.status = 'shortfall';
+        const singleDayTransport = Math.max(1, Math.round(rawVehicleCost / Math.max(1, numDays || 1)));
+        const affordableDays = Math.max(1, Math.floor(unallocated / singleDayTransport));
+        const adjustedCost = affordableDays * singleDayTransport;
+        const remainingAfterAdjusted = Math.max(0, numBudget - adjustedCost);
+        proposals.push({
+          service: 'transport',
+          message: `The total cost for ${numDays || 1} days of transportation is PKR ${rawVehicleCost.toLocaleString()}, which exceeds your PKR ${numBudget.toLocaleString()} budget. You can either arrange transport on your own (cost: PKR 0) or accept a ${affordableDays}-day package for PKR ${adjustedCost.toLocaleString()} with PKR ${remainingAfterAdjusted.toLocaleString()} remaining.`,
+          options: [
+            { id: 'accept_adjusted_days', label: `Accept ${affordableDays}-day package (PKR ${adjustedCost.toLocaleString()})`, adjustedDays: affordableDays, cost: adjustedCost },
+            { id: 'manage_own_transport', label: 'Arrange transport on my own (Cost: PKR 0)', selfManaged: true, cost: 0 },
+          ],
+        });
+      }
+    } else if (isTransportNeeded && isOwnCar) {
+      breakdown.transport.status = 'self_arranged';
+      breakdown.transport.details = 'Personal vehicle (PKR 0 rental)';
+    }
+
+    // Priority 2: Hotel & Lodging
+    if (isHotelNeeded && hotelRequired && rawHotelCost > 0) {
+      if (unallocated >= rawHotelCost) {
+        breakdown.hotel.allocatedCost = rawHotelCost;
+        breakdown.hotel.status = 'covered';
+        breakdown.hotel.details = `${roomsQuantity} room(s) x ${nights} night(s)`;
+        unallocated -= rawHotelCost;
+      } else {
+        breakdown.hotel.status = 'dropped';
+        breakdown.hotel.allocatedCost = 0;
+        breakdown.hotel.details = 'Budget shortfall for selected hotel stay';
+        breakdown.hotel.isSelfManaged = true;
+        proposals.push({
+          service: 'hotel',
+          message: `Your transportation can be arranged within your budget (PKR ${rawVehicleCost.toLocaleString()}), but your remaining budget (PKR ${unallocated.toLocaleString()}) cannot cover the selected hotel stay (PKR ${rawHotelCost.toLocaleString()}). You can choose budget-friendly guest houses or self-arrange accommodation for PKR 0 in package.`,
+          options: [
+            { id: 'self_arranged_hotel', label: 'Self-arrange accommodation (PKR 0 in package)', selfManaged: true, cost: 0 },
+            { id: 'switch_budget_hotel', label: 'Switch to Budget Guest House', comfortLevel: 'Basic' },
+          ],
+        });
+      }
+    } else {
+      breakdown.hotel.status = 'self_arranged';
+      breakdown.hotel.allocatedCost = 0;
+      breakdown.hotel.details = 'Self-arranged / No hotel required (PKR 0)';
+    }
+
+    // Priority 3: Food & Meals
+    if (isFoodNeeded && foodRequired && rawFoodCost > 0 && foodChoice !== 'self') {
+      if (unallocated >= rawFoodCost) {
+        breakdown.food.allocatedCost = rawFoodCost;
+        breakdown.food.status = 'covered';
+        breakdown.food.details = `${numPersons} persons x ${numDays || 1} days`;
+        unallocated -= rawFoodCost;
+      } else {
+        breakdown.food.status = 'dropped';
+        breakdown.food.allocatedCost = 0;
+        breakdown.food.details = 'Budget shortfall: meals self-arranged at local eateries (PKR 0 in package)';
+        breakdown.food.isSelfManaged = true;
+        const coveredList = [];
+        if (breakdown.transport.status === 'covered') coveredList.push('transportation');
+        if (breakdown.hotel.status === 'covered') coveredList.push('hotel stay');
+        const coveredPrefix = coveredList.length > 0 ? `Your ${coveredList.join(' and ')} can be arranged, but your` : 'Your';
+        proposals.push({
+          service: 'food',
+          message: `${coveredPrefix} remaining budget (PKR ${unallocated.toLocaleString()}) cannot cover company dining (PKR ${rawFoodCost.toLocaleString()}). Dining can be self-arranged at local eateries for PKR 0 in your package.`,
+          options: [
+            { id: 'self_arranged_food', label: 'Self-arrange meals at local eateries (PKR 0)', selfManaged: true, cost: 0 },
+          ],
+        });
+      }
+    } else {
+      breakdown.food.status = 'self_arranged';
+      breakdown.food.allocatedCost = 0;
+      breakdown.food.details = 'Self-arranged by customer (PKR 0)';
+    }
+
+    // Priority 4: Activities
+    if (isActivitiesNeeded && calculatedActivitiesCost > 0) {
+      if (unallocated >= calculatedActivitiesCost) {
+        breakdown.activities.allocatedCost = calculatedActivitiesCost;
+        breakdown.activities.status = 'covered';
+        breakdown.activities.details = `${selectedOptionalActivities.length} adventure activity(s)`;
+        unallocated -= calculatedActivitiesCost;
+      } else {
+        breakdown.activities.status = 'dropped';
+        breakdown.activities.details = 'Excluded to fit within budget (standard sightseeing is free)';
+      }
+    } else {
+      breakdown.activities.status = 'covered';
+      breakdown.activities.details = isCompany ? 'Standard sights entry coordination included' : 'No paid activities selected';
+    }
+
+    const totalCovered = breakdown.transport.allocatedCost + breakdown.food.allocatedCost + breakdown.hotel.allocatedCost + breakdown.activities.allocatedCost + companyProfit;
+    const finalRemaining = Math.max(0, numBudget - totalCovered);
+    const hasShortfall = proposals.length > 0 || (breakdown.transport.status === 'shortfall');
+
+    return {
+      breakdown,
+      totalIncurred: totalCovered,
+      remainingBudget: finalRemaining,
+      hasShortfall,
+      shortfallProposals: proposals,
+      perPersonCost: Math.round(totalCovered / Math.max(1, numPersons)),
+    };
+  }, [numBudget, isTransportNeeded, isOwnCar, rawVehicleCost, vehiclesRequired, currentVehicle, vehicleCapacity, numDays, driverRequired, isFoodNeeded, foodRequired, foodChoice, rawFoodCost, numPersons, isHotelNeeded, hotelRequired, rawHotelCost, roomsQuantity, nights, isActivitiesNeeded, calculatedActivitiesCost, selectedOptionalActivities, isCompany, companyProfit]);
+
+  const totalIncurred = priorityResult.totalIncurred;
+  const remainingBudget = priorityResult.remainingBudget;
+  const perPersonIncurred = priorityResult.perPersonCost;
+  const budgetExceeded = priorityResult.hasShortfall;
+  const budgetShortfall = Math.max(0, (rawVehicleCost + rawFoodCost + rawHotelCost + calculatedActivitiesCost + companyProfit) - numBudget);
+  const estimatedVehicleCost = priorityResult.breakdown.transport.allocatedCost;
+  const hotelTotalCost = priorityResult.breakdown.hotel.allocatedCost;
+  const foodTotalCost = priorityResult.breakdown.food.allocatedCost;
 
   // Auto-fit function: 1-click optimization
   function handleAutoFitBudget() {
@@ -1302,8 +1530,12 @@ export default function TripPlanningScreen({ navigation, route }) {
       return;
     }
 
-    // Supervisor Rule: If budget is low, system manages stay & transport, customer handles food on their own
-    const isBudgetLowForTrip = cleanBudget < (Math.max(1, numPersons) * Math.max(1, numDays) * 3500);
+    // Check if there is an active shortfall in selected services
+    if (priorityResult.hasShortfall && priorityResult.shortfallProposals.length > 0) {
+      setActiveShortfallProposal(priorityResult.shortfallProposals[0]);
+      setShortfallModalVisible(true);
+      return;
+    }
 
     // Auto-resolve hotel selection if isHotelNeeded is true
     let hotelToUse = selectedHotel;
@@ -1328,15 +1560,6 @@ export default function TripPlanningScreen({ navigation, route }) {
       const cleanBudgetPerPerson = Number(budgetPerPerson) || Math.round(cleanBudget / Math.max(1, numPersons));
       const selectedVehicleObj = RENTAL_VEHICLES.find((v) => v.id === vehicleType) || RENTAL_VEHICLES[1];
 
-      // Supervisor Rule: If budget is low, system manages stay and transport while food is handled by customer on their own
-      const isTripLowBudget = cleanBudget > 0 && cleanBudget < (Math.max(1, numPersons) * Math.max(1, numDays) * 3500);
-
-      // If 4 persons on low budget, ensure roomsQuantity defaults to 1 (Family Quad Room) to stay within budget
-      let effectiveRoomsQty = roomsQuantity;
-      if (isTripLowBudget && numPersons <= 4 && effectiveRoomsQty > 1) {
-        effectiveRoomsQty = 1;
-      }
-
       const trip = await generateTrip({
         destination: destination.trim(),
         startLocation: startLocation.trim(),
@@ -1346,7 +1569,7 @@ export default function TripPlanningScreen({ navigation, route }) {
         tripMode,
         transportChoice: isCompany ? 'rental' : transportChoice,
         preferredRoute: preferredRoute || customRouteInput || 'Scenic Highway Route',
-        foodChoice: isTripLowBudget ? 'self' : (isCompany ? 'included' : foodChoice),
+        foodChoice: (foodRequired && foodChoice !== 'self') ? 'included' : 'self',
         optionalActivities: isCompany
           ? []
           : selectedOptionalActivities.map((id) => {
@@ -1365,15 +1588,15 @@ export default function TripPlanningScreen({ navigation, route }) {
         femaleCount: travelerGender === 'female' ? numPersons : (travelerGender === 'male' ? 0 : femaleCount),
         budgetPerPerson: cleanBudgetPerPerson,
         vehicleType,
-        driverRequired: false,
+        driverRequired: Boolean(driverRequired),
         interests: selectedInterests,
         travelType: isCompany ? 'Group' : travelType,
         transportation: isOwnCar ? 'Own Car (Personal Vehicle)' : selectedVehicleObj.name,
         comfortLevel,
         transportRequired: isTransportNeeded,
-        foodRequired: isTripLowBudget ? false : isFoodNeeded,
-        activitiesRequired: isTripLowBudget ? false : isActivitiesNeeded,
-        roomsQuantity: effectiveRoomsQty,
+        foodRequired: Boolean(foodRequired && foodChoice !== 'self'),
+        activitiesRequired: isActivitiesNeeded,
+        roomsQuantity: roomsQuantity,
         selectedMeals,
         hotelRequired: Boolean(isHotelNeeded && hotelToUse),
         selectedHotelId: isHotelNeeded && hotelToUse ? hotelToUse.id : undefined,
@@ -1441,7 +1664,7 @@ export default function TripPlanningScreen({ navigation, route }) {
               </AppText>
               <View style={[styles.modeBadge, tripMode === 'company' && styles.modeBadgeActive]}>
                 <AppText style={[styles.modeBadgeText, tripMode === 'company' && styles.modeBadgeTextActive]}>
-                  {tripMode === 'company' ? '✓ ACTIVE' : 'SELECT'}
+                  {tripMode === 'company' ? 'ACTIVE' : 'SELECT'}
                 </AppText>
               </View>
             </TouchableOpacity>
@@ -1461,7 +1684,7 @@ export default function TripPlanningScreen({ navigation, route }) {
               </AppText>
               <View style={[styles.modeBadge, tripMode === 'customized' && styles.modeBadgeActive]}>
                 <AppText style={[styles.modeBadgeText, tripMode === 'customized' && styles.modeBadgeTextActive]}>
-                  {tripMode === 'customized' ? '✓ ACTIVE' : 'SELECT'}
+                  {tripMode === 'customized' ? 'ACTIVE' : 'SELECT'}
                 </AppText>
               </View>
             </TouchableOpacity>
@@ -1526,7 +1749,7 @@ export default function TripPlanningScreen({ navigation, route }) {
                 <AppText style={styles.companyInclusionsTitle}>Full Company Package Inclusions</AppText>
               </View>
               <AppText style={styles.companyInclusionsText}>
-                ✓ Chauffeur vehicle with fuel & motorway tolls  •  ✓ Hotel stay according to budget tier  •  ✓ Daily breakfast & dinner  •  ✓ Sights entry coordination & 24/7 support
+                Chauffeur vehicle with fuel and motorway tolls  -  Hotel stay according to budget tier  -  Daily breakfast and dinner  -  Sights entry coordination and 24/7 support
               </AppText>
             </View>
           )}
@@ -1567,7 +1790,7 @@ export default function TripPlanningScreen({ navigation, route }) {
           <View style={styles.categoryInfoBox}>
             <AppIcon name="information-circle" size={16} color={colors.forest} />
             <AppText style={styles.categoryInfoText}>
-              📍 <AppText style={{ fontWeight: 'bold' }}>{destination}</AppText> lies in the <AppText style={{ fontWeight: 'bold', color: colors.forest }}>{category}</AppText> category.
+              <AppIcon name="location-outline" size={14} color={colors.forest} /> <AppText style={{ fontWeight: 'bold' }}>{destination}</AppText> lies in the <AppText style={{ fontWeight: 'bold', color: colors.forest }}>{category}</AppText> category.
             </AppText>
           </View>
 
@@ -1620,6 +1843,24 @@ export default function TripPlanningScreen({ navigation, route }) {
             })}
           </View>
 
+          {/* Live GPS Origin Detection Button */}
+          <TouchableOpacity
+            style={styles.gpsLocationBtn}
+            onPress={handleUseGpsLocation}
+            disabled={gpsLoading}
+            accessibilityLabel="Use live GPS location"
+            accessibilityRole="button"
+          >
+            {gpsLoading ? (
+              <ActivityIndicator size="small" color={colors.forest} />
+            ) : (
+              <AppIcon name="locate-outline" size={17} color={colors.forest} />
+            )}
+            <AppText style={styles.gpsLocationBtnText}>
+              {gpsLoading ? 'Detecting Live Location...' : 'Use My Live GPS Location'}
+            </AppText>
+          </TouchableOpacity>
+
           <View style={styles.inputWrap}>
             <AppIcon name="location-outline" size={18} color={colors.muted} />
             <TextInput
@@ -1638,7 +1879,7 @@ export default function TripPlanningScreen({ navigation, route }) {
           <View style={styles.routeRoutePreview}>
             <AppIcon name="arrow-forward-circle" size={16} color={colors.forest} />
             <AppText style={styles.routeRoutePreviewText}>
-              Route: <AppText style={{ fontWeight: 'bold' }}>{startLocation || 'Origin'}</AppText> ➔ <AppText style={{ fontWeight: 'bold', color: colors.forest }}>{destination || 'Destination'}</AppText>
+              Route: <AppText style={{ fontWeight: 'bold' }}>{startLocation || 'Origin'}</AppText> {'->'} <AppText style={{ fontWeight: 'bold', color: colors.forest }}>{destination || 'Destination'}</AppText>
             </AppText>
           </View>
         </View>
@@ -1714,7 +1955,7 @@ export default function TripPlanningScreen({ navigation, route }) {
               onPress={() => openCalendarPicker('start')}
               accessibilityLabel="Open Start Date Calendar Picker"
             >
-              <AppText style={styles.openCalendarLink}>📅 Open Calendar</AppText>
+              <AppText style={styles.openCalendarLink}>Open Calendar</AppText>
             </TouchableOpacity>
           </View>
           <View style={[
@@ -1758,7 +1999,7 @@ export default function TripPlanningScreen({ navigation, route }) {
               onPress={() => openCalendarPicker('end')}
               accessibilityLabel="Open End Date Calendar Picker"
             >
-              <AppText style={styles.openCalendarLink}>📅 Open Calendar</AppText>
+              <AppText style={styles.openCalendarLink}>Open Calendar</AppText>
             </TouchableOpacity>
           </View>
           <View style={[
@@ -1829,8 +2070,8 @@ export default function TripPlanningScreen({ navigation, route }) {
                 {dateError
                   ? dateError
                   : startDate && (endDate || days)
-                    ? `📅 ${startDate} ➔ ${endDate || computeEndDate(startDate, days)} (${numDays || 1} Days / ${nights} Nights)`
-                    : '📅 Click the calendar or enter start date & days'}
+                    ? `${startDate} -> ${endDate || computeEndDate(startDate, days)} (${numDays || 1} Days / ${nights} Nights)`
+                    : 'Click the calendar or enter start date & days'}
               </AppText>
             </View>
           </View>
@@ -1843,7 +2084,7 @@ export default function TripPlanningScreen({ navigation, route }) {
             <AppText variant="heading" style={styles.cardTitle}>4. Tour Group Size & Budget</AppText>
           </View>
           <AppText variant="caption" color={colors.muted}>
-            Tour cost calculation: No. of persons × Budget per person
+            Tour cost calculation: No. of persons x Budget per person
           </AppText>
 
           {/* Males & Females Strength Inputs */}
@@ -1942,7 +2183,7 @@ export default function TripPlanningScreen({ navigation, route }) {
             </View>
             <AppText style={styles.totalTourFormula}>
               {numPersons > 0 && numBudgetPerPerson > 0
-                ? `${numPersons} ${numPersons === 1 ? 'Person' : 'Persons'} × PKR ${numBudgetPerPerson.toLocaleString()} / person`
+                ? `${numPersons} ${numPersons === 1 ? 'Person' : 'Persons'} x PKR ${numBudgetPerPerson.toLocaleString()} / person`
                 : 'Enter travelers and budget per person to calculate total'}
             </AppText>
             <AppText style={styles.totalTourPrice}>
@@ -2043,7 +2284,7 @@ export default function TripPlanningScreen({ navigation, route }) {
                 <View style={{ flex: 1 }}>
                   <AppText style={styles.ownCarTitle}>Traveling in Your Own Car</AppText>
                   <AppText style={styles.ownCarDesc}>
-                    ✅ Apni car hai! Vehicle rental charges are <AppText style={{ fontWeight: 'bold' }}>PKR 0</AppText> and will <AppText style={{ fontWeight: 'bold' }}>NOT</AppText> be cut from your budget.
+                    Personal car selected! Vehicle rental charges are <AppText style={{ fontWeight: 'bold' }}>PKR 0</AppText> and will <AppText style={{ fontWeight: 'bold' }}>NOT</AppText> be cut from your budget.
                   </AppText>
                 </View>
               </View>
@@ -2058,10 +2299,35 @@ export default function TripPlanningScreen({ navigation, route }) {
           ) : (
             /* Rental Car Options with Dynamic Dropdown */
             <>
+              {/* Driver & Chauffeur Preference Toggle */}
+              <View style={{ marginTop: 8, marginBottom: 12 }}>
+                <AppText style={styles.sublabel}>Driver and Chauffeur Option:</AppText>
+                <View style={styles.driverToggleRow}>
+                  <TouchableOpacity
+                    style={[styles.driverToggleBtn, driverRequired && styles.driverToggleBtnActive]}
+                    onPress={() => setDriverRequired(true)}
+                  >
+                    <AppIcon name="person" size={16} color={driverRequired ? colors.white : colors.forest} />
+                    <AppText style={[styles.driverToggleText, driverRequired && styles.driverToggleTextActive]}>
+                      With Licensed Driver (+PKR 2,000/day)
+                    </AppText>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.driverToggleBtn, !driverRequired && styles.driverToggleBtnActive]}
+                    onPress={() => setDriverRequired(false)}
+                  >
+                    <AppIcon name="key-outline" size={16} color={!driverRequired ? colors.white : colors.forest} />
+                    <AppText style={[styles.driverToggleText, !driverRequired && styles.driverToggleTextActive]}>
+                      Self-Drive (Without Driver)
+                    </AppText>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
               <View style={{ marginTop: 6 }}>
                 <View style={styles.dropdownLabelRow}>
                   <AppText style={styles.sublabel}>
-                    🚗 Select Vehicle:
+                    Select Vehicle:
                   </AppText>
                   {matchingVehicles.length > 0 && (
                     <View style={styles.withinBadge}>
@@ -2091,7 +2357,7 @@ export default function TripPlanningScreen({ navigation, route }) {
                         {currentVehicle.name}
                       </AppText>
                       <AppText style={styles.dropdownVehicleMeta}>
-                        {currentVehicle.persons} • 🧳 {currentVehicle.luggage} • PKR {currentVehicle.rentPerDay.toLocaleString()}/day
+                        {currentVehicle.persons} - {currentVehicle.luggage} - PKR {currentVehicle.rentPerDay.toLocaleString()}/day
                       </AppText>
                     </View>
                   </View>
@@ -2137,7 +2403,7 @@ export default function TripPlanningScreen({ navigation, route }) {
                                 {veh.name}
                               </AppText>
                               <AppText style={styles.dropdownItemSubtitle}>
-                                {veh.persons} • Rent: PKR {veh.rentPerDay.toLocaleString()}/day • Fuel: PKR {veh.fuelPerDay.toLocaleString()}/day
+                                {veh.persons} - Rent: PKR {veh.rentPerDay.toLocaleString()}/day - Fuel: PKR {veh.fuelPerDay.toLocaleString()}/day
                               </AppText>
                             </View>
                           </View>
@@ -2160,21 +2426,23 @@ export default function TripPlanningScreen({ navigation, route }) {
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <AppIcon name="checkmark-circle" size={16} color="#15803d" />
                       <AppText style={styles.summaryTitle}>
-                        {currentVehicle.name}
+                        {vehiclesRequired > 1 ? `${vehiclesRequired}x ${currentVehicle.name}` : currentVehicle.name}
                       </AppText>
                     </View>
                     <View style={styles.withinBadge}>
-                      <AppText style={styles.withinBadgeText}>✓ Within Budget</AppText>
+                      <AppText style={styles.withinBadgeText}>{vehiclesRequired} Vehicle{vehiclesRequired > 1 ? 's' : ''} Required</AppText>
                     </View>
                   </View>
                   <AppText style={styles.summaryDetails}>
-                    Capacity: {currentVehicle.persons} • Luggage: {currentVehicle.luggage}
+                    Capacity: {currentVehicle.persons} ({currentVehicle.maxPersons || 4} seats per vehicle) - {currentVehicle.luggage}
                   </AppText>
                   <AppText style={styles.summaryPricing}>
-                    Daily Rent: <AppText style={{ fontWeight: 'bold' }}>PKR {currentVehicle.rentPerDay.toLocaleString()}/day</AppText> • Fuel: PKR {currentVehicle.fuelPerDay.toLocaleString()}/day
+                    Daily Rent: <AppText style={{ fontWeight: 'bold' }}>PKR {currentVehicle.rentPerDay.toLocaleString()}/day</AppText>
+                    {driverRequired ? ' + PKR 2,000/day driver' : ' (Self-drive)'}
+                    {' + Fuel: PKR ' + currentVehicle.fuelPerDay.toLocaleString() + '/day'}
                   </AppText>
                   <AppText style={styles.summaryTripCost}>
-                    Trip Transport Estimate ({numDays || 1} day{(numDays || 1) > 1 ? 's' : ''}): <AppText style={{ fontWeight: 'bold', color: colors.forest }}>PKR {((currentVehicle.rentPerDay + currentVehicle.fuelPerDay) * (numDays || 1) + 800 * (numDays || 1)).toLocaleString()}</AppText>
+                    Trip Transport Total ({numDays || 1} day{(numDays || 1) > 1 ? 's' : ''}): <AppText style={{ fontWeight: 'bold', color: colors.forest }}>PKR {rawVehicleCost.toLocaleString()}</AppText>
                   </AppText>
                 </View>
               </View>
@@ -2183,7 +2451,11 @@ export default function TripPlanningScreen({ navigation, route }) {
               <View style={styles.transportFormulaBox}>
                 <AppText style={styles.transportFormulaLabel}>TRANSPORT ESTIMATE FORMULA:</AppText>
                 <AppText style={styles.transportFormulaText}>
-                  (Rent PKR {currentVehicle.rentPerDay.toLocaleString()} + Fuel PKR {currentVehicle.fuelPerDay.toLocaleString()}) × {numDays || 1}d + Motorway Toll/Parking PKR {tollParkingEstimate.toLocaleString()} = <AppText style={{ fontWeight: 'bold', color: colors.forest }}>PKR {estimatedVehicleCost.toLocaleString()}</AppText>
+                  Vehicles: CEILING({numPersons || 1} / {currentVehicle.maxPersons || 4}) = {vehiclesRequired} vehicle{vehiclesRequired > 1 ? 's' : ''} | Rent: PKR {(vehiclesRequired * currentVehicle.rentPerDay * (numDays || 1)).toLocaleString()}
+                  {driverRequired ? ` + Driver: PKR ${(vehiclesRequired * 2000 * (numDays || 1)).toLocaleString()}` : ''}
+                  {` + Fuel: PKR ${(vehiclesRequired * currentVehicle.fuelPerDay * (numDays || 1)).toLocaleString()}`}
+                  {` + Motorway Toll/Parking: PKR ${(vehiclesRequired * 800 * (numDays || 1)).toLocaleString()}`}
+                  {` = `}<AppText style={{ fontWeight: 'bold', color: colors.forest }}>PKR {rawVehicleCost.toLocaleString()}</AppText>
                 </AppText>
               </View>
             </>
@@ -2252,7 +2524,7 @@ export default function TripPlanningScreen({ navigation, route }) {
           <View style={styles.routePreviewBox}>
             <AppText style={styles.routePreviewLabel}>SELECTED JOURNEY ROUTE:</AppText>
             <AppText style={styles.routePreviewText}>
-              🚗 {startLocation} ➔ <AppText style={{ fontWeight: 'bold' }}>{preferredRoute || 'Standard Scenic Route'}</AppText> ➔ {destination}
+              {startLocation} {'->'} <AppText style={{ fontWeight: 'bold' }}>{preferredRoute || 'Standard Scenic Route'}</AppText> {'->'} {destination}
             </AppText>
           </View>
         </View>
@@ -2311,15 +2583,15 @@ export default function TripPlanningScreen({ navigation, route }) {
                   {dailyHotelBudget < 3000
                     ? `Smart Controller: Budget Mode (< PKR 3,000/night)`
                     : dailyHotelBudget >= 7000
-                      ? `Smart Controller: Luxury Mode (≥ PKR 7,000/night)`
+                      ? `Smart Controller: Luxury Mode (>= PKR 7,000/night)`
                       : `Smart Controller: Standard Mode (PKR 3,000 - 7,000/night)`}
                 </AppText>
                 <AppText style={styles.smartExpenseNote}>
                   {dailyHotelBudget < 3000
-                    ? `Daily hotel allocation: PKR ${dailyHotelBudget.toLocaleString()}/night. Luxury 4★/5★ hotels are hidden; displaying verified budget-friendly guest houses & lodges.`
+                    ? `Daily hotel allocation: PKR ${dailyHotelBudget.toLocaleString()}/night. Luxury 4-Star and 5-Star hotels are hidden; displaying verified budget-friendly guest houses & lodges.`
                     : dailyHotelBudget >= 7000
-                      ? `Daily hotel allocation: PKR ${dailyHotelBudget.toLocaleString()}/night. Luxury 4★ and 5★ resorts, executive rooms & suites are fully unlocked!`
-                      : `Daily hotel allocation: PKR ${dailyHotelBudget.toLocaleString()}/night. Quality 3★ family hotels & deluxe standard rooms available.`}
+                      ? `Daily hotel allocation: PKR ${dailyHotelBudget.toLocaleString()}/night. Luxury 4-Star and 5-Star resorts, executive rooms & suites are fully unlocked!`
+                      : `Daily hotel allocation: PKR ${dailyHotelBudget.toLocaleString()}/night. Quality 3-Star family hotels & deluxe standard rooms available.`}
                 </AppText>
               </View>
             </View>
@@ -2332,7 +2604,7 @@ export default function TripPlanningScreen({ navigation, route }) {
                 <View style={{ flex: 1 }}>
                   <AppText style={styles.roomsQuantityTitle}>Rooms Quantity:</AppText>
                   <AppText style={styles.roomsQuantityDesc}>
-                    {roomsQuantity} Room{roomsQuantity > 1 ? 's' : ''} × {nights} Nights ({numberOfPersons} travelers)
+                    {roomsQuantity} Room{roomsQuantity > 1 ? 's' : ''} x {nights} Nights ({numberOfPersons} travelers)
                   </AppText>
                 </View>
                 <View style={styles.roomsStepperWrap}>
@@ -2340,7 +2612,7 @@ export default function TripPlanningScreen({ navigation, route }) {
                     style={styles.roomsStepperBtn}
                     onPress={() => setRoomsQuantity(Math.max(1, roomsQuantity - 1))}
                   >
-                    <AppText style={styles.roomsStepperBtnText}>−</AppText>
+                    <AppText style={styles.roomsStepperBtnText}>-</AppText>
                   </TouchableOpacity>
                   <AppText style={styles.roomsStepperValue}>{roomsQuantity}</AppText>
                   <TouchableOpacity
@@ -2398,7 +2670,10 @@ export default function TripPlanningScreen({ navigation, route }) {
                               <AppText style={styles.ratingNum}>{hotel.rating || 4.5}</AppText>
                             </View>
                           </View>
-                          <AppText style={styles.hotelCity}>📍 {hotel.city}</AppText>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                            <AppIcon name="location-outline" size={12} color={colors.muted} />
+                            <AppText style={styles.hotelCity}>{hotel.city}</AppText>
+                          </View>
                           <AppText style={styles.hotelPrice}>
                             PKR {Number(hotel.pricePerNight).toLocaleString()} <AppText style={styles.nightText}>/ night</AppText>
                           </AppText>
@@ -2477,120 +2752,161 @@ export default function TripPlanningScreen({ navigation, route }) {
         </View>
         )}
 
-        {/* 8. FOOD POLICY & MEAL PLAN (Conditionally rendered when food is needed) */}
-        {(isCompany || foodRequired || isLowBudget) && (
+        {/* 8. FOOD POLICY & MEAL PLAN */}
         <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <AppIcon name="restaurant-outline" size={20} color={colors.forest} />
-            <AppText variant="heading" style={styles.cardTitle}>8. Food & Meal Policy</AppText>
-          </View>
-          <AppText variant="caption" color={colors.muted}>
-            {isLowBudget
-              ? 'Low budget policy: Customer handles food on their own at local eateries to accommodate hotel stay and transport within budget.'
-              : (isCompany ? 'Complimentary breakfast buffet & gourmet dinner included in package:' : 'Select individual daily meal plans with authentic Pakistani menus:')}
-          </AppText>
-
-          {isLowBudget ? (
-            <View style={styles.lowBudgetFoodBanner}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <AppIcon name="information-circle" size={18} color="#0369a1" />
-                <AppText style={styles.lowBudgetFoodTitle}>Customer Handles Food on Their Own</AppText>
+          <View style={styles.cardHeaderRowBetween}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <AppIcon name="restaurant-outline" size={18} color={colors.forest} />
+                <AppText variant="heading" style={styles.cardTitle}>
+                  8. Food & Meal Policy ({foodMenuData?.menu?.regionName || 'Authentic Regional Cuisine'})
+                </AppText>
               </View>
-              <AppText style={styles.lowBudgetFoodDesc}>
-                To manage your hotel stay and transport strictly within your PKR {numBudget.toLocaleString()} budget, dining is self-arranged (handled on your own at scenic local dhabas & food stops). PKR 0 is added to your tour package.
+              <AppText variant="caption" color={colors.muted} style={{ marginTop: 2 }}>
+                Select authentic regional meals for your journey to {destination || 'your destination'}
               </AppText>
             </View>
-          ) : tripMode === 'customized' ? (
-            <View style={{ gap: 10, marginTop: 4 }}>
-              {/* Breakfast Checkbox */}
+
+            {/* YES / NO Toggle Switch */}
+            <View style={styles.yesNoToggle}>
+              <TouchableOpacity
+                style={[styles.yesNoBtn, foodRequired && styles.yesNoBtnActive]}
+                onPress={() => {
+                  setFoodRequired(true);
+                  setFoodChoice('included');
+                }}
+              >
+                <AppText style={[styles.yesNoBtnText, foodRequired && styles.yesNoBtnTextActive]}>YES</AppText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.yesNoBtn, !foodRequired && styles.yesNoBtnInactive]}
+                onPress={() => {
+                  setFoodRequired(false);
+                  setFoodChoice('self');
+                }}
+              >
+                <AppText style={[styles.yesNoBtnText, !foodRequired && styles.yesNoBtnTextInactive]}>NO</AppText>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {!foodRequired || foodChoice === 'self' ? (
+            <View style={styles.foodSelfNotice}>
+              <AppIcon name="checkmark-circle-outline" size={18} color={colors.forest} />
+              <AppText style={styles.foodSelfNoticeText}>
+                Food is self-arranged by customer. PKR 0 will be deducted from your package budget.
+              </AppText>
+            </View>
+          ) : (
+            <View style={{ gap: 10, marginTop: 8 }}>
+              {/* Breakfast Card */}
               <TouchableOpacity
                 style={[styles.mealSelectCard, selectedMeals.breakfast && styles.mealSelectCardActive]}
                 onPress={() => setSelectedMeals((prev) => ({ ...prev, breakfast: !prev.breakfast }))}
+                activeOpacity={0.85}
               >
-                <View style={styles.mealCheckRow}>
-                  <AppIcon name={selectedMeals.breakfast ? "checkbox" : "square-outline"} size={20} color={selectedMeals.breakfast ? colors.forest : colors.muted} />
-                  <AppText style={styles.mealName}>Breakfast (PKR 450 / day / person)</AppText>
-                  <View style={[styles.mealPriceBadge, selectedMeals.breakfast && styles.mealPriceBadgeActive]}>
-                    <AppText style={[styles.mealPriceBadgeText, selectedMeals.breakfast && styles.mealPriceBadgeTextActive]}>
-                      PKR {(selectedMeals.breakfast ? 450 * numPersons * (numDays || 1) : 0).toLocaleString()}
+                <View style={styles.mealCardTopRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                    <AppIcon
+                      name={selectedMeals.breakfast ? 'checkbox' : 'square-outline'}
+                      size={20}
+                      color={selectedMeals.breakfast ? colors.forest : colors.muted}
+                    />
+                    <AppText style={styles.mealCardTitle}>
+                      Breakfast ({foodMenuData?.menu?.breakfast?.title || 'Authentic Regional Breakfast'})
                     </AppText>
                   </View>
                 </View>
-                <AppText style={styles.mealMenuText}>Menu: Pakistani Omelette, Crispy Paratha, Halwa Puri Chana, Toast & Karak Chai</AppText>
+
+                <View style={styles.mealCardRateRow}>
+                  <AppText style={styles.mealRateText}>
+                    PKR {destinationBfPrice.toLocaleString()} / person / day
+                  </AppText>
+                  <AppText style={selectedMeals.breakfast ? styles.mealTotalTextActive : styles.mealTotalTextMuted}>
+                    PKR {(selectedMeals.breakfast ? destinationBfPrice * numPersons * (numDays || 1) : 0).toLocaleString()}
+                  </AppText>
+                </View>
+
+                <AppText style={styles.mealMenuText}>
+                  Menu: {foodMenuData?.menu?.breakfast?.menuSummary || (Array.isArray(foodMenuData?.menu?.breakfast?.items) ? foodMenuData.menu.breakfast.items.map((b) => b.name).join(' • ') : 'Halwa Puri, Paratha, Chana, Chai')}
+                </AppText>
               </TouchableOpacity>
 
-              {/* Lunch Checkbox */}
+              {/* Lunch Card */}
               <TouchableOpacity
                 style={[styles.mealSelectCard, selectedMeals.lunch && styles.mealSelectCardActive]}
                 onPress={() => setSelectedMeals((prev) => ({ ...prev, lunch: !prev.lunch }))}
+                activeOpacity={0.85}
               >
-                <View style={styles.mealCheckRow}>
-                  <AppIcon name={selectedMeals.lunch ? "checkbox" : "square-outline"} size={20} color={selectedMeals.lunch ? colors.forest : colors.muted} />
-                  <AppText style={styles.mealName}>Lunch (PKR 850 / day / person)</AppText>
-                  <View style={[styles.mealPriceBadge, selectedMeals.lunch && styles.mealPriceBadgeActive]}>
-                    <AppText style={[styles.mealPriceBadgeText, selectedMeals.lunch && styles.mealPriceBadgeTextActive]}>
-                      PKR {(selectedMeals.lunch ? 850 * numPersons * (numDays || 1) : 0).toLocaleString()}
+                <View style={styles.mealCardTopRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                    <AppIcon
+                      name={selectedMeals.lunch ? 'checkbox' : 'square-outline'}
+                      size={20}
+                      color={selectedMeals.lunch ? colors.forest : colors.muted}
+                    />
+                    <AppText style={styles.mealCardTitle}>
+                      Lunch ({foodMenuData?.menu?.lunch?.title || 'Authentic Regional Lunch'})
                     </AppText>
                   </View>
                 </View>
-                <AppText style={styles.mealMenuText}>Menu: Desi Chicken Karahi / Special Biryani / Daal Chawal, Tandoori Naan, Fresh Salad & Mint Raita</AppText>
+
+                <View style={styles.mealCardRateRow}>
+                  <AppText style={styles.mealRateText}>
+                    PKR {destinationLunchPrice.toLocaleString()} / person / day
+                  </AppText>
+                  <AppText style={selectedMeals.lunch ? styles.mealTotalTextActive : styles.mealTotalTextMuted}>
+                    PKR {(selectedMeals.lunch ? destinationLunchPrice * numPersons * (numDays || 1) : 0).toLocaleString()}
+                  </AppText>
+                </View>
+
+                <AppText style={styles.mealMenuText}>
+                  Menu: {foodMenuData?.menu?.lunch?.menuSummary || (Array.isArray(foodMenuData?.menu?.lunch?.items) ? foodMenuData.menu.lunch.items.map((l) => l.name).join(' • ') : 'Karahi, Biryani, Roti, Salad')}
+                </AppText>
               </TouchableOpacity>
 
-              {/* Dinner Checkbox */}
+              {/* Dinner Card */}
               <TouchableOpacity
                 style={[styles.mealSelectCard, selectedMeals.dinner && styles.mealSelectCardActive]}
                 onPress={() => setSelectedMeals((prev) => ({ ...prev, dinner: !prev.dinner }))}
+                activeOpacity={0.85}
               >
-                <View style={styles.mealCheckRow}>
-                  <AppIcon name={selectedMeals.dinner ? "checkbox" : "square-outline"} size={20} color={selectedMeals.dinner ? colors.forest : colors.muted} />
-                  <AppText style={styles.mealName}>Dinner (PKR 1,200 / day / person)</AppText>
-                  <View style={[styles.mealPriceBadge, selectedMeals.dinner && styles.mealPriceBadgeActive]}>
-                    <AppText style={[styles.mealPriceBadgeText, selectedMeals.dinner && styles.mealPriceBadgeTextActive]}>
-                      PKR {(selectedMeals.dinner ? 1200 * numPersons * (numDays || 1) : 0).toLocaleString()}
+                <View style={styles.mealCardTopRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                    <AppIcon
+                      name={selectedMeals.dinner ? 'checkbox' : 'square-outline'}
+                      size={20}
+                      color={selectedMeals.dinner ? colors.forest : colors.muted}
+                    />
+                    <AppText style={styles.mealCardTitle}>
+                      Dinner ({foodMenuData?.menu?.dinner?.title || 'Authentic Regional Dinner'})
                     </AppText>
                   </View>
                 </View>
-                <AppText style={styles.mealMenuText}>Menu: Mutton Handi / Shinwari Karahi / Chicken BBQ Tikka, Roghani Naan, Shahi Kheer & Peshawari Kahwa</AppText>
+
+                <View style={styles.mealCardRateRow}>
+                  <AppText style={styles.mealRateText}>
+                    PKR {destinationDinnerPrice.toLocaleString()} / person / day
+                  </AppText>
+                  <AppText style={selectedMeals.dinner ? styles.mealTotalTextActive : styles.mealTotalTextMuted}>
+                    PKR {(selectedMeals.dinner ? destinationDinnerPrice * numPersons * (numDays || 1) : 0).toLocaleString()}
+                  </AppText>
+                </View>
+
+                <AppText style={styles.mealMenuText}>
+                  Menu: {foodMenuData?.menu?.dinner?.menuSummary || (Array.isArray(foodMenuData?.menu?.dinner?.items) ? foodMenuData.menu.dinner.items.map((d) => d.name).join(' • ') : 'Charcoal BBQ, Karahi, Roghani Naan, Kheer')}
+                </AppText>
               </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={styles.foodPolicyGrid}>
-              <View style={styles.foodPolicyItem}>
-                <AppText style={styles.foodPolicyIcon}>🍳</AppText>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.foodPolicyTitle}>Daily Breakfast Buffet (Included)</AppText>
-                  <AppText style={styles.foodPolicyDesc}>Complimentary hot breakfast buffet served daily at hotel dining room.</AppText>
-                </View>
-                <View style={styles.foodTagGreen}>
-                  <AppText style={styles.foodTagGreenText}>INCLUDED</AppText>
-                </View>
-              </View>
 
-              <View style={styles.foodPolicyItem}>
-                <AppText style={styles.foodPolicyIcon}>🥪</AppText>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.foodPolicyTitle}>Midday Lunch (Scenic Stop / Self-Paid)</AppText>
-                  <AppText style={styles.foodPolicyDesc}>Scenic highway food stop & local viewpoints (self-paid approx. PKR 850/day).</AppText>
-                </View>
-                <View style={styles.foodTagYellow}>
-                  <AppText style={styles.foodTagYellowText}>SELF-PAID</AppText>
-                </View>
-              </View>
-
-              <View style={styles.foodPolicyItem}>
-                <AppText style={styles.foodPolicyIcon}>🍽️</AppText>
-                <View style={{ flex: 1 }}>
-                  <AppText style={styles.foodPolicyTitle}>Gourmet Dinner (Package Included)</AppText>
-                  <AppText style={styles.foodPolicyDesc}>Daily gourmet Pakistani dinner for all {numPersons || 1} travelers included in package.</AppText>
-                </View>
-                <View style={styles.foodTagGreen}>
-                  <AppText style={styles.foodTagGreenText}>INCLUDED</AppText>
-                </View>
+              {/* Total Food Plan Cost Footer */}
+              <View style={styles.foodTotalFooter}>
+                <AppText style={styles.foodTotalFooterText}>
+                  Total Food Plan Cost: <AppText style={styles.foodTotalFooterBold}>PKR {rawFoodCost.toLocaleString()}</AppText> ({numPersons} persons x {numDays || 1} days)
+                </AppText>
               </View>
             </View>
           )}
         </View>
-        )}
 
         {/* 9. OPTIONAL ACTIVITIES & ADVENTURES (Conditionally rendered when activities needed) */}
         {(isCompany || activitiesRequired) && (
@@ -2680,38 +2996,58 @@ export default function TripPlanningScreen({ navigation, route }) {
 
           <View style={styles.deductionAuditCard}>
             <View style={styles.deductionRow}>
-              <AppText style={styles.deductionLabel}>🚗 Transport ({isOwnCar ? 'Own Car' : 'Rental'}):</AppText>
+              <View style={{ flex: 1 }}>
+                <AppText style={styles.deductionLabel}>Transport (Priority 1 - {isOwnCar ? 'Own Car' : 'Rental'}):</AppText>
+                {priorityResult.breakdown.transport.details ? (
+                  <AppText style={styles.deductionDetailText}>{priorityResult.breakdown.transport.details}</AppText>
+                ) : null}
+              </View>
               <AppText style={styles.deductionVal}>
-                {isOwnCar ? `PKR 0 rent ${driverCharges > 0 ? `+ PKR ${driverCharges.toLocaleString()} driver` : ''}` : `PKR ${estimatedVehicleCost.toLocaleString()}`}
+                PKR {priorityResult.breakdown.transport.allocatedCost.toLocaleString()}
               </AppText>
             </View>
 
             <View style={styles.deductionRow}>
-              <AppText style={styles.deductionLabel}>🏨 Hotel Stay ({nights} nights):</AppText>
+              <View style={{ flex: 1 }}>
+                <AppText style={styles.deductionLabel}>Food Plan (Priority 2):</AppText>
+                {priorityResult.breakdown.food.details ? (
+                  <AppText style={styles.deductionDetailText}>{priorityResult.breakdown.food.details}</AppText>
+                ) : null}
+              </View>
               <AppText style={styles.deductionVal}>
-                {(!hotelRequired || !isHotelNeeded || hotelTotalCost === 0) ? 'PKR 0 (No hotel / Self-arranged)' : `PKR ${hotelTotalCost.toLocaleString()}`}
+                PKR {priorityResult.breakdown.food.allocatedCost.toLocaleString()}
               </AppText>
             </View>
 
             <View style={styles.deductionRow}>
-              <AppText style={styles.deductionLabel}>🍽️ Food Plan:</AppText>
+              <View style={{ flex: 1 }}>
+                <AppText style={styles.deductionLabel}>Hotel Stay (Priority 3 - {nights} nights):</AppText>
+                {priorityResult.breakdown.hotel.details ? (
+                  <AppText style={styles.deductionDetailText}>{priorityResult.breakdown.hotel.details}</AppText>
+                ) : null}
+              </View>
               <AppText style={styles.deductionVal}>
-                {isLowBudget ? 'PKR 0 (Self-Arranged by Customer)' : (isFoodNeeded ? `PKR ${foodTotalCost.toLocaleString()}` : 'PKR 0 (Self-arranged)')}
+                PKR {priorityResult.breakdown.hotel.allocatedCost.toLocaleString()}
               </AppText>
             </View>
 
             <View style={styles.deductionRow}>
-              <AppText style={styles.deductionLabel}>🎯 Selected Activities:</AppText>
+              <View style={{ flex: 1 }}>
+                <AppText style={styles.deductionLabel}>Selected Activities (Priority 4):</AppText>
+                {priorityResult.breakdown.activities.details ? (
+                  <AppText style={styles.deductionDetailText}>{priorityResult.breakdown.activities.details}</AppText>
+                ) : null}
+              </View>
               <AppText style={styles.deductionVal}>
-                {calculatedActivitiesCost > 0 ? `PKR ${calculatedActivitiesCost.toLocaleString()}` : 'PKR 0 (Standard sights)'}
+                PKR {priorityResult.breakdown.activities.allocatedCost.toLocaleString()}
               </AppText>
             </View>
 
             {isCompany && companyProfit > 0 ? (
               <View style={styles.deductionRow}>
-                <AppText style={styles.deductionLabel}>🏢 Company Profit (10%):</AppText>
+                <AppText style={styles.deductionLabel}>Company Management Fee (10%):</AppText>
                 <AppText style={styles.deductionVal}>
-                  PKR {companyProfit.toLocaleString()} (10% of budget)
+                  PKR {companyProfit.toLocaleString()}
                 </AppText>
               </View>
             ) : null}
@@ -2724,40 +3060,47 @@ export default function TripPlanningScreen({ navigation, route }) {
             </View>
 
             <View style={styles.deductionRow}>
-              <AppText style={styles.deductionLabel}>Per Person ({numberOfPersons} travelers):</AppText>
+              <AppText style={styles.deductionLabel}>Per Person ({numberOfPersons || 1} travelers):</AppText>
               <AppText style={styles.deductionVal}>PKR {perPersonIncurred.toLocaleString()} / person</AppText>
             </View>
 
             <View style={styles.deductionRow}>
               <AppText style={styles.deductionRemainLabel}>
-                {budgetExceeded ? '⚠️ BUDGET SHORTFALL:' : '💰 REMAINING SAVINGS:'}
+                {budgetExceeded ? 'BUDGET SHORTFALL:' : 'REMAINING SAVINGS:'}
               </AppText>
               <AppText style={[styles.deductionRemainVal, { color: budgetExceeded ? '#dc2626' : '#15803d' }]}>
-                PKR {budgetExceeded ? (totalIncurred - numBudget).toLocaleString() : remainingBudget.toLocaleString()}
+                PKR {budgetExceeded ? budgetShortfall.toLocaleString() : remainingBudget.toLocaleString()}
               </AppText>
             </View>
           </View>
 
-          {/* BUDGET EXCEEDED: AUTO-FIT BUTTON & OPTIMIZATION ASSISTANT */}
+          {/* BUDGET SHORTFALL: INTERACTIVE PROPOSAL BANNER */}
           {budgetExceeded ? (
             <View style={{ marginTop: 12, gap: 10 }}>
               <TouchableOpacity
                 style={styles.autoFitBtn}
-                onPress={handleAutoFitBudget}
+                onPress={() => {
+                  if (priorityResult.shortfallProposals.length > 0) {
+                    setActiveShortfallProposal(priorityResult.shortfallProposals[0]);
+                    setShortfallModalVisible(true);
+                  } else {
+                    handleAutoFitBudget();
+                  }
+                }}
                 activeOpacity={0.88}
               >
                 <AppIcon name="flash" size={18} color="#ffffff" />
-                <AppText style={styles.autoFitBtnText}>⚡ Auto-Fit to Budget (1-Click Optimization)</AppText>
+                <AppText style={styles.autoFitBtnText}>Resolve Budget Shortfall (Adjustment Proposal)</AppText>
               </TouchableOpacity>
 
               {liveSuggestions.length > 0 && (
                 <View style={styles.optimizationCard}>
                   <View style={styles.optimizationHeader}>
                     <AppIcon name="bulb-outline" size={18} color="#b45309" />
-                    <AppText style={styles.optimizationTitle}>Optimization Assistant: Cheaper Options</AppText>
+                    <AppText style={styles.optimizationTitle}>Optimization Assistant: Budget Adjustments</AppText>
                   </View>
                   <AppText style={styles.optimizationDesc}>
-                    Your selected items exceed your budget by PKR {budgetShortfall.toLocaleString()}. Click Apply on any suggestion to save costs:
+                    Your selected items exceed your budget by PKR {budgetShortfall.toLocaleString()}. Click Apply on any suggestion to adjust:
                   </AppText>
                   <View style={{ gap: 8, marginTop: 4 }}>
                     {liveSuggestions.map((sug) => (
@@ -2765,7 +3108,7 @@ export default function TripPlanningScreen({ navigation, route }) {
                         <View style={{ flex: 1 }}>
                           <AppText style={styles.sugTitle}>{sug.title}</AppText>
                           <AppText style={styles.sugDesc}>{sug.desc}</AppText>
-                          <AppText style={styles.sugSavings}>💰 Saves approx. PKR {sug.savings.toLocaleString()}</AppText>
+                          <AppText style={styles.sugSavings}>Saves approx. PKR {sug.savings.toLocaleString()}</AppText>
                         </View>
                         <TouchableOpacity
                           style={styles.applyBtn}
@@ -2798,7 +3141,7 @@ export default function TripPlanningScreen({ navigation, route }) {
                   onPress={() => toggleInterest(interest)}
                 >
                   <AppText style={[styles.interestText, active && styles.interestTextActive]}>
-                    {active ? `✓ ${interest}` : interest}
+                    {active ? `[Selected] ${interest}` : interest}
                   </AppText>
                 </TouchableOpacity>
               );
@@ -2852,62 +3195,60 @@ export default function TripPlanningScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* 13. SMART BUDGET ALLOCATION (SUPERVISOR 5 SLICES) - AT THE END OF THE PAGE */}
+        {/* 13. PRIORITY-BASED BUDGET ALLOCATION SUMMARY */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
             <AppIcon name="pie-chart-outline" size={20} color={colors.forest} />
-            <AppText variant="heading" style={styles.cardTitle}>13. Smart Budget Allocation (100%)</AppText>
+            <AppText variant="heading" style={styles.cardTitle}>13. Priority-Based Budget Allocation Summary</AppText>
           </View>
           <AppText variant="caption" color={colors.muted}>
-            {numBudget > 0
-              ? `Verified distribution based on supervisor's budget formula for PKR ${numBudget.toLocaleString()}:`
-              : "Verified distribution based on supervisor's budget formula (enter budget above to view distribution):"}
+            Sequential service hierarchy based on supervisor requirements (1. Transport {'->'} 2. Food {'->'} 3. Hotel {'->'} 4. Activities):
           </AppText>
 
-          {/* Multi-slice Progress Bar */}
+          {/* Multi-slice Progress Bar reflecting actual allocated shares */}
           <View style={styles.allocationBarContainer}>
-            <View style={[styles.allocationSegment, { flex: 35, backgroundColor: '#2563eb' }]} />
-            <View style={[styles.allocationSegment, { flex: 35, backgroundColor: '#059669' }]} />
-            <View style={[styles.allocationSegment, { flex: 15, backgroundColor: '#d97706' }]} />
-            <View style={[styles.allocationSegment, { flex: 10, backgroundColor: '#7c3aed' }]} />
-            <View style={[styles.allocationSegment, { flex: 5, backgroundColor: '#0284c7' }]} />
+            <View style={[styles.allocationSegment, { flex: Math.max(1, Math.round((priorityResult.breakdown.transport.allocatedCost / Math.max(1, numBudget)) * 100)), backgroundColor: '#2563eb' }]} />
+            <View style={[styles.allocationSegment, { flex: Math.max(1, Math.round((priorityResult.breakdown.food.allocatedCost / Math.max(1, numBudget)) * 100)), backgroundColor: '#d97706' }]} />
+            <View style={[styles.allocationSegment, { flex: Math.max(1, Math.round((priorityResult.breakdown.hotel.allocatedCost / Math.max(1, numBudget)) * 100)), backgroundColor: '#059669' }]} />
+            <View style={[styles.allocationSegment, { flex: Math.max(1, Math.round((priorityResult.breakdown.activities.allocatedCost / Math.max(1, numBudget)) * 100)), backgroundColor: '#7c3aed' }]} />
+            <View style={[styles.allocationSegment, { flex: Math.max(1, Math.round((remainingBudget / Math.max(1, numBudget)) * 100)), backgroundColor: '#0284c7' }]} />
           </View>
 
-          {/* 5 Allocation Cards Grid */}
+          {/* Priority Allocation Cards Grid */}
           <View style={styles.allocationGrid}>
             <View style={styles.allocCard}>
               <View style={[styles.allocDot, { backgroundColor: '#2563eb' }]} />
               <View style={{ flex: 1 }}>
-                <AppText style={styles.allocCardTitle}>🚗 Transport (35%)</AppText>
-                <AppText style={styles.allocCardValue}>PKR {allocTransport.toLocaleString()}</AppText>
-                <AppText style={styles.allocCardNote}>Rent, fuel & driver</AppText>
+                <AppText style={styles.allocCardTitle}>Priority 1: Transport</AppText>
+                <AppText style={styles.allocCardValue}>PKR {priorityResult.breakdown.transport.allocatedCost.toLocaleString()}</AppText>
+                <AppText style={styles.allocCardNote}>{priorityResult.breakdown.transport.details || 'Chauffeur / Rental / Personal'}</AppText>
               </View>
             </View>
 
             <View style={styles.allocCard}>
               <View style={[styles.allocDot, { backgroundColor: '#059669' }]} />
               <View style={{ flex: 1 }}>
-                <AppText style={styles.allocCardTitle}>🏨 Hotel / Stay (35%)</AppText>
-                <AppText style={styles.allocCardValue}>PKR {allocHotel.toLocaleString()}</AppText>
-                <AppText style={styles.allocCardNote}>PKR {dailyHotelBudget.toLocaleString()} / night</AppText>
+                <AppText style={styles.allocCardTitle}>Priority 2: Hotel & Stay</AppText>
+                <AppText style={styles.allocCardValue}>PKR {priorityResult.breakdown.hotel.allocatedCost.toLocaleString()}</AppText>
+                <AppText style={styles.allocCardNote}>{priorityResult.breakdown.hotel.details || 'Verified hotel accommodation'}</AppText>
               </View>
             </View>
 
             <View style={styles.allocCard}>
               <View style={[styles.allocDot, { backgroundColor: '#d97706' }]} />
               <View style={{ flex: 1 }}>
-                <AppText style={styles.allocCardTitle}>🍽️ Food (15%)</AppText>
-                <AppText style={styles.allocCardValue}>PKR {allocFood.toLocaleString()}</AppText>
-                <AppText style={styles.allocCardNote}>Dinner & refreshments</AppText>
+                <AppText style={styles.allocCardTitle}>Priority 3: Food & Meals</AppText>
+                <AppText style={styles.allocCardValue}>PKR {priorityResult.breakdown.food.allocatedCost.toLocaleString()}</AppText>
+                <AppText style={styles.allocCardNote}>{priorityResult.breakdown.food.details || 'Breakfast, lunch and dinner'}</AppText>
               </View>
             </View>
 
             <View style={styles.allocCard}>
               <View style={[styles.allocDot, { backgroundColor: '#7c3aed' }]} />
               <View style={{ flex: 1 }}>
-                <AppText style={styles.allocCardTitle}>🎯 Activities (10%)</AppText>
-                <AppText style={styles.allocCardValue}>PKR {allocActivities.toLocaleString()}</AppText>
-                <AppText style={styles.allocCardNote}>Sights & entry points</AppText>
+                <AppText style={styles.allocCardTitle}>Priority 4: Sights & Activities</AppText>
+                <AppText style={styles.allocCardValue}>PKR {priorityResult.breakdown.activities.allocatedCost.toLocaleString()}</AppText>
+                <AppText style={styles.allocCardNote}>{priorityResult.breakdown.activities.details || 'Standard sights coordination'}</AppText>
               </View>
             </View>
 
@@ -2915,9 +3256,9 @@ export default function TripPlanningScreen({ navigation, route }) {
               <View style={[styles.allocCard, { width: '100%', borderColor: '#0d9488', borderWidth: 1.5 }]}>
                 <View style={[styles.allocDot, { backgroundColor: '#0d9488' }]} />
                 <View style={{ flex: 1 }}>
-                  <AppText style={styles.allocCardTitle}>🏢 Company Profit (10%)</AppText>
+                  <AppText style={styles.allocCardTitle}>Company Management Fee (10%)</AppText>
                   <AppText style={styles.allocCardValue}>PKR {companyProfit.toLocaleString()}</AppText>
-                  <AppText style={styles.allocCardNote}>10% commercial package management fee deducted from budget</AppText>
+                  <AppText style={styles.allocCardNote}>10% commercial package management fee</AppText>
                 </View>
               </View>
             ) : null}
@@ -2925,9 +3266,9 @@ export default function TripPlanningScreen({ navigation, route }) {
             <View style={[styles.allocCard, { width: '100%' }]}>
               <View style={[styles.allocDot, { backgroundColor: '#0284c7' }]} />
               <View style={{ flex: 1 }}>
-                <AppText style={styles.allocCardTitle}>🛡️ Safety Margin (5% contingency)</AppText>
-                <AppText style={styles.allocCardValue}>PKR {allocSafety.toLocaleString()}</AppText>
-                <AppText style={styles.allocCardNote}>Emergency highway & weather buffer</AppText>
+                <AppText style={styles.allocCardTitle}>Remaining Savings Balance</AppText>
+                <AppText style={styles.allocCardValue}>PKR {remainingBudget.toLocaleString()}</AppText>
+                <AppText style={styles.allocCardNote}>Guaranteed non-negative unallocated budget balance</AppText>
               </View>
             </View>
           </View>
@@ -2965,6 +3306,49 @@ export default function TripPlanningScreen({ navigation, route }) {
         mode={calendarPickerMode}
         title={calendarPickerMode === 'start' ? 'Select Journey Start Date' : 'Select Journey End Date'}
       />
+
+      {/* INTERACTIVE BUDGET SHORTFALL PROPOSAL MODAL */}
+      <Modal
+        visible={shortfallModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShortfallModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconWrap}>
+                <AppIcon name="alert-circle" size={24} color="#d97706" />
+              </View>
+              <AppText style={styles.modalTitle}>Budget Adjustment Proposal</AppText>
+            </View>
+
+            <AppText style={styles.modalMessage}>
+              {activeShortfallProposal?.message}
+            </AppText>
+
+            <View style={styles.modalOptionsList}>
+              {activeShortfallProposal?.options?.map((opt) => (
+                <TouchableOpacity
+                  key={opt.id}
+                  style={styles.modalOptionBtn}
+                  onPress={() => handleApplyShortfallOption(opt)}
+                >
+                  <AppIcon name="checkmark-circle-outline" size={18} color={colors.white} />
+                  <AppText style={styles.modalOptionBtnText}>{opt.label}</AppText>
+                </TouchableOpacity>
+              ))}
+
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setShortfallModalVisible(false)}
+              >
+                <AppText style={styles.modalCancelBtnText}>Review & Adjust My Inputs Myself</AppText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -2989,6 +3373,136 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: fonts.semiBold,
     lineHeight: 18,
+  },
+  gpsLocationBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.mint,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: radius.md,
+    alignSelf: 'flex-start',
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: colors.green,
+  },
+  gpsLocationBtnText: {
+    color: colors.forest,
+    fontSize: 13,
+    fontFamily: fonts.semiBold,
+  },
+  driverToggleRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 6,
+  },
+  driverToggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.paper,
+  },
+  driverToggleBtnActive: {
+    backgroundColor: colors.forest,
+    borderColor: colors.forest,
+  },
+  driverToggleText: {
+    fontSize: 12.5,
+    fontFamily: fonts.medium,
+    color: colors.ink,
+  },
+  driverToggleTextActive: {
+    color: colors.white,
+    fontFamily: fonts.bold,
+  },
+  foodPolicyIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.mint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deductionDetailText: {
+    fontSize: 11,
+    color: colors.muted,
+    marginTop: 2,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: colors.paper,
+    borderRadius: radius.lg,
+    maxWidth: 520,
+    width: '100%',
+    padding: 20,
+    gap: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  modalIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fef3c7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 17,
+    color: colors.ink,
+  },
+  modalMessage: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.ink,
+  },
+  modalOptionsList: {
+    gap: 10,
+    marginTop: 6,
+  },
+  modalOptionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.forest,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: radius.md,
+  },
+  modalOptionBtnText: {
+    color: colors.white,
+    fontFamily: fonts.semiBold,
+    fontSize: 13.5,
+  },
+  modalCancelBtn: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  modalCancelBtnText: {
+    color: colors.muted,
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    textDecorationLine: 'underline',
   },
   card: {
     ...shadowSoft,
@@ -4846,6 +5360,106 @@ const styles = StyleSheet.create({
     color: '#64748b',
     lineHeight: 15,
     paddingLeft: 28,
+  },
+  cardHeaderRowBetween: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  yesNoToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#e2e8f0',
+    borderRadius: radius.pill,
+    padding: 2,
+    alignItems: 'center',
+  },
+  yesNoBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+  },
+  yesNoBtnActive: {
+    backgroundColor: colors.forest,
+  },
+  yesNoBtnInactive: {
+    backgroundColor: '#dc2626',
+  },
+  yesNoBtnText: {
+    fontSize: 11,
+    fontFamily: fonts.bold,
+    color: '#64748b',
+  },
+  yesNoBtnTextActive: {
+    color: '#ffffff',
+  },
+  yesNoBtnTextInactive: {
+    color: '#ffffff',
+  },
+  foodSelfNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#f0fdf4',
+    borderColor: '#86efac',
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: 12,
+    marginTop: 8,
+  },
+  foodSelfNoticeText: {
+    fontSize: 12,
+    fontFamily: fonts.medium,
+    color: '#166534',
+    flex: 1,
+  },
+  mealCardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  mealCardTitle: {
+    fontSize: 13,
+    fontFamily: fonts.bold,
+    color: colors.ink,
+    flex: 1,
+  },
+  mealCardRateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 28,
+    marginTop: 2,
+  },
+  mealRateText: {
+    fontSize: 12,
+    fontFamily: fonts.medium,
+    color: colors.muted,
+  },
+  mealTotalTextActive: {
+    fontSize: 12,
+    fontFamily: fonts.bold,
+    color: colors.forest,
+  },
+  mealTotalTextMuted: {
+    fontSize: 12,
+    fontFamily: fonts.bold,
+    color: '#94a3b8',
+  },
+  foodTotalFooter: {
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    marginTop: 6,
+  },
+  foodTotalFooterText: {
+    fontSize: 12,
+    fontFamily: fonts.medium,
+    color: colors.muted,
+  },
+  foodTotalFooterBold: {
+    fontFamily: fonts.bold,
+    color: colors.forest,
   },
 
   /* BUDGET EXCEEDED & OPTIMIZATION */

@@ -203,7 +203,7 @@ function generateRuleBasedItinerary({ destination, days, budget, interests = [],
     return {
       day: dayNum,
       title: dayNum === 1
-        ? `Departure from ${startLocation} ➔ ${city.name}`
+        ? `Departure from ${startLocation} to ${city.name}`
         : dayNum === totalDays
           ? `Sightseeing & Return Journey`
           : `Exploring ${city.name} Highlights`,

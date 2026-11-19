@@ -167,7 +167,7 @@ export default function DestinationDetailScreen({ navigation, route }) {
             <View style={{ flex: 1 }}>
               <AppText style={styles.categoryInfoTitle}>Category Classification</AppText>
               <AppText style={styles.categoryInfoBody}>
-                📍 <AppText style={{ fontWeight: 'bold' }}>{destination.name}</AppText> lies in the <AppText style={{ fontWeight: 'bold', color: colors.forest }}>{destination.category || 'Featured'}</AppText> category of Pakistan.
+                <AppText style={{ fontWeight: 'bold' }}>{destination.name}</AppText> lies in the <AppText style={{ fontWeight: 'bold', color: colors.forest }}>{destination.category || 'Featured'}</AppText> category of Pakistan.
               </AppText>
             </View>
           </View>
@@ -227,13 +227,13 @@ export default function DestinationDetailScreen({ navigation, route }) {
             <View>
               <View style={styles.currentWeatherRow}>
                 <View style={styles.tempGroup}>
-                  <AppText style={styles.currentTemp}>{weather.temp}°C</AppText>
+                  <AppText style={styles.currentTemp}>{weather.temp} C</AppText>
                   <AppText style={styles.weatherCondition}>{weather.description || weather.main}</AppText>
                 </View>
                 <View style={styles.weatherDetailsCol}>
                   <AppText style={styles.weatherSubDetail}>Humidity: {weather.humidity}%</AppText>
                   <AppText style={styles.weatherSubDetail}>Wind: {weather.wind} m/s</AppText>
-                  <AppText style={styles.weatherSubDetail}>Feels like: {weather.feelsLike}°C</AppText>
+                  <AppText style={styles.weatherSubDetail}>Feels like: {weather.feelsLike} C</AppText>
                 </View>
               </View>
 
@@ -242,7 +242,7 @@ export default function DestinationDetailScreen({ navigation, route }) {
                   {forecast.map((day, idx) => (
                     <View key={idx} style={styles.miniForecastCard}>
                       <AppText style={styles.forecastDayLabel}>{day.label || `Day ${day.dayNumber}`}</AppText>
-                      <AppText style={styles.forecastTempText}>{day.temp}°C</AppText>
+                      <AppText style={styles.forecastTempText}>{day.temp} C</AppText>
                       <AppText style={styles.forecastDescText}>{day.main}</AppText>
                     </View>
                   ))}
@@ -251,7 +251,7 @@ export default function DestinationDetailScreen({ navigation, route }) {
             </View>
           ) : (
             <AppText color={colors.muted} style={styles.weatherFallbackText}>
-              {weatherError || 'Weather data unavailable — verify conditions before travel.'}
+              {weatherError || 'Weather data unavailable - verify conditions before travel.'}
             </AppText>
           )}
         </View>
@@ -302,7 +302,7 @@ export default function DestinationDetailScreen({ navigation, route }) {
                 <View style={{ flex: 1 }}>
                   <AppText style={styles.companyModeTitle}>Company Tour or Full Package</AppText>
                   <View style={styles.badgeRowInner}>
-                    <AppText style={styles.modeBadgeCompany}>✓ Complete All-Inclusive Package</AppText>
+                    <AppText style={styles.modeBadgeCompany}>Complete All-Inclusive Package</AppText>
                   </View>
                 </View>
                 <AppIcon name="chevron-forward" size={20} color={colors.white} />
@@ -327,7 +327,7 @@ export default function DestinationDetailScreen({ navigation, route }) {
                 <View style={{ flex: 1 }}>
                   <AppText style={styles.customModeTitle}>Customize My Trip</AppText>
                   <View style={styles.badgeRowInner}>
-                    <AppText style={styles.modeBadgeCustom}>⚙️ Flexible • Pick Your Services</AppText>
+                    <AppText style={styles.modeBadgeCustom}>Flexible | Pick Your Services</AppText>
                   </View>
                 </View>
                 <AppIcon name="chevron-forward" size={20} color="#0284c7" />

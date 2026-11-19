@@ -75,7 +75,7 @@ export default function WelcomeScreen({ navigation }) {
               </View>
 
               <AppText style={styles.footerNote}>
-                Hunza • Skardu • Swat • Lahore • Gwadar • Fairy Meadows
+                Hunza | Skardu | Swat | Lahore | Gwadar | Fairy Meadows
               </AppText>
             </View>
           </View>

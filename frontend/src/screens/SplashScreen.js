@@ -223,7 +223,7 @@ export default function SplashScreen({ navigation }) {
               {/* App Brand Tag */}
               <View style={styles.brandBadge}>
                 <AppIcon name="sparkles" size={13} color={colors.mint} />
-                <AppText style={styles.brandBadgeText}>SMART TRAVEL PLANNER • PAKISTAN</AppText>
+                <AppText style={styles.brandBadgeText}>SMART TRAVEL PLANNER | PAKISTAN</AppText>
               </View>
 
               {/* Origami Paper Airplane with wind trails */}

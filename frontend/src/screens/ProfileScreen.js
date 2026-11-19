@@ -156,7 +156,7 @@ export default function ProfileScreen({ navigation }) {
             accessibilityLabel={`Return to ${currentTrip.destination} itinerary`}
           >
             <AppIcon name="arrow-back" size={17} color="#ffffff" style={{ marginRight: 8 }} />
-            <Text style={styles.backToItineraryBigText}>← Back to {currentTrip.destination} Itinerary (Day Plan)</Text>
+            <Text style={styles.backToItineraryBigText}>Back to {currentTrip.destination} Itinerary (Day Plan)</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -185,7 +185,7 @@ export default function ProfileScreen({ navigation }) {
         {/* Favorite Destinations Section */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.title}>Favorite Destinations ❤️</Text>
+            <Text style={styles.title}>Favorite Destinations</Text>
             <TouchableOpacity onPress={() => navigation.navigate('MainApp', { screen: 'Home' })}>
               <Text style={styles.exploreLink}>Explore more</Text>
             </TouchableOpacity>
@@ -213,7 +213,7 @@ export default function ProfileScreen({ navigation }) {
 
         {/* Saved Trips Section */}
         <View style={styles.card}>
-          <Text style={styles.title}>Saved Trips 🎒</Text>
+          <Text style={styles.title}>Saved Trips</Text>
           {tripsLoading ? <ActivityIndicator color={colors.forest} style={{ margin: 20 }} /> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {!tripsLoading && !error && trips.length === 0 ? (
@@ -224,8 +224,8 @@ export default function ProfileScreen({ navigation }) {
               <TouchableOpacity style={{ flex: 1 }} onPress={() => chooseTrip(trip)}>
                 <Text style={styles.tripTitle}>{trip.destination}</Text>
                 <Text style={styles.tripMeta}>
-                  {trip.days} days • PKR {Number(trip.budget).toLocaleString()}
-                  {trip.travelType ? ` • ${trip.travelType}` : ''}
+                  {trip.days} days - PKR {Number(trip.budget).toLocaleString()}
+                  {trip.travelType ? ` - ${trip.travelType}` : ''}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity

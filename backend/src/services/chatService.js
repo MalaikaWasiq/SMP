@@ -5,123 +5,12 @@ function money(value) {
   return `PKR ${Number(value || 0).toLocaleString()}`;
 }
 
-function fallbackReply(message, trip, appContext = {}) {
-  const text = String(message).toLowerCase();
-  const tripHistory = appContext.tripHistory || [];
-  const activeAlerts = appContext.activeAlerts || [];
-  const activeTrip = appContext.activeTrip || trip;
-
-  // 1. General Beauty & Best Cities Questions
-  if (text.includes('beautiful') || text.includes('beauty') || text.includes('scenic') || text.includes('prettiest') || text.includes('best city') || text.includes('top city') || text.includes('which city')) {
-    return [
-      'Pakistan is blessed with diverse beauty across its regions:',
-      '',
-      '• **Mountain & Alpine Beauty**: **Hunza Valley** and **Skardu** (Gilgit-Baltistan) are world-famous for emerald lakes, dramatic snow peaks, and apricot blossoms.',
-      '• **Modern Green Landscapes**: **Islamabad**, nestled against the Margalla Hills, is renowned for its clean tree-lined avenues and scenic viewpoints like Daman-e-Koh.',
-      '• **Historic & Cultural Grandeur**: **Lahore** captures Pakistan’s soul with magnificent Mughal monuments (Badshahi Mosque, Lahore Fort) and lively food streets.',
-      '• **Lush Pine Valleys**: **Swat Valley**, **Kalam**, and **Neelum Valley** offer rushing rivers and alpine meadows.',
-      '• **Coastal Drama**: **Gwadar** and **Kund Malir** feature pristine beaches meeting rugged golden desert cliffs.',
-      '',
-      '**Recommendation**: If you love mountains and lakes, visit **Hunza** or **Skardu**. For historic architecture, choose **Lahore**. For peaceful greenery, visit **Islamabad**.'
-    ].join('\n');
-  }
-
-  // 2. Recommendations & Where to go
-  if (text.includes('recommend') || text.includes('suggest') || text.includes('where to go') || text.includes('where should i go') || text.includes('best place')) {
-    return [
-      'Top destinations to consider across Pakistan:',
-      '',
-      '1. **Northern Areas**: Hunza Valley, Skardu, Fairy Meadows, Neelum Valley (Ideal: May – October)',
-      '2. **Adventure & Nature**: Malam Jabba (skiing), Babusar Top, Kumrat Valley, Naran & Kaghan',
-      '3. **Cultural & Historical**: Lahore, Multan (City of Saints), Bahawalpur (Noor Mahal), Taxila, Mohenjo-daro',
-      '4. **Coastal & Sea**: Gwadar, Kund Malir Beach, Astola Island, Clifton Beach (Ideal: Oct – April)',
-      '',
-      'You can also select any destination on the Home screen to explore top spots, weather alerts, and generate a customized itinerary!'
-    ].join('\n');
-  }
-
-  // 3. Questions about specific cities
-  const matchedDest = destinationsData.find((d) => text.includes(d.name.toLowerCase()));
-  if (matchedDest) {
-    return [
-      `📍 **${matchedDest.name} (${matchedDest.region})**`,
-      `• **Category**: ${matchedDest.category}`,
-      `• **Highlights**: ${matchedDest.description}`,
-      `• **Top Spots**: ${(matchedDest.popularActivities || []).slice(0, 4).join(', ')}`,
-      `• **Best Season**: ${matchedDest.bestTimeToVisit || 'Spring to Autumn'}`,
-      `• **Travel Difficulty**: ${matchedDest.travelDifficulty || 'Easy'}`
-    ].join('\n');
-  }
-
-  // 4. Saved Trip History Queries
-  if (text.includes('history') || text.includes('previous') || text.includes('past') || text.includes('saved trip')) {
-    if (!tripHistory.length) return 'You do not have any saved trips yet. Generate an itinerary on the Home or Plan Trip screen and it will appear in your account history.';
-    const summaries = tripHistory.slice(0, 8).map((savedTrip) => (
-      `${savedTrip.destination}: ${savedTrip.days} days, ${money(savedTrip.plannedBudget)} budget, ${money(savedTrip.actualSpend)} recorded`
-    ));
-    return `You have ${tripHistory.length} saved trip${tripHistory.length === 1 ? '' : 's'}. ${summaries.join('; ')}.`;
-  }
-
-  // 5. Compare Budgets Across Trips
-  if ((text.includes('compare') || text.includes('all')) && (text.includes('budget') || text.includes('spend'))) {
-    if (!tripHistory.length) return 'There are no saved trip budgets to compare yet.';
-    return tripHistory.slice(0, 8).map((savedTrip) => (
-      `${savedTrip.destination}: budget ${money(savedTrip.plannedBudget)}, estimated ${money(savedTrip.estimatedSpend)}, actual ${money(savedTrip.actualSpend)}`
-    )).join('; ');
-  }
-
-  // 6. Active Travel Alerts
-  if (text.includes('alert') || text.includes('warning') || text.includes('landslide')) {
-    if (!activeAlerts.length) return 'You have no active travel alerts. Roads and routes are currently normal.';
-    return `You have ${activeAlerts.length} active alert${activeAlerts.length === 1 ? '' : 's'}: ${activeAlerts.slice(0, 6).map((alert) => `${alert.severity} - ${alert.title}: ${alert.message}`).join('; ')}`;
-  }
-
-  // 7. User Preferences
-  if (text.includes('preference') || text.includes('interest')) {
-    const preferences = appContext.user?.preferences || {};
-    return `Your saved interests are ${(preferences.interests || []).join(', ') || 'not set'}, your default budget is ${money(preferences.defaultBudget)}, and your preferred hotel type is ${preferences.preferredHotelType || 'Any'}.`;
-  }
-
-  // 8. If No Active Trip is Selected
-  if (!activeTrip) {
-    return 'I can answer any general questions about Pakistan destinations, travel routes, weather, and attractions. If you have an active trip, I can also track your itinerary, budget, actual expenses, and safety alerts!';
-  }
-
-  // 9. Expenses
-  if (text.includes('expense') || text.includes('spent') || text.includes('actual')) {
-    const expenses = activeTrip.expenses || [];
-    const actual = activeTrip.budgetBreakdown?.actualSpent ?? activeTrip.actualSpend;
-    if (!expenses.length) return `No expenses are recorded yet for ${activeTrip.destination}. The actual-spend total is ${money(actual)}.`;
-    return `You recorded ${expenses.length} expense${expenses.length === 1 ? '' : 's'} for ${activeTrip.destination}, totaling ${money(actual)}. ${expenses.slice(0, 5).map((expense) => `${expense.category}: ${money(expense.amount)}${expense.note ? ` (${expense.note})` : ''}`).join('; ')}.`;
-  }
-
-  // 10. Budget
-  if (text.includes('budget') || text.includes('cost') || text.includes('spend')) {
-    const budget = activeTrip.budgetBreakdown || {};
-    return `Your ${activeTrip.destination} budget is ${money(activeTrip.budget || activeTrip.plannedBudget)}. Planned spending is ${money(budget.totalEstimated ?? activeTrip.estimatedSpend)}, and recorded actual spending is ${money(budget.actualSpent ?? activeTrip.actualSpend)}.`;
-  }
-
-  // 11. Weather & Packing
-  if (text.includes('weather') || text.includes('pack')) {
-    return `Current planning weather for ${activeTrip.destination} is ${activeTrip.weather?.description || 'normal conditions'} at ${activeTrip.weather?.temp ?? '18'}°C. Check the forecast again shortly before departure and pack comfortable walking shoes, layers, and rain gear for mountain trips.`;
-  }
-
-  // 12. Hotel
-  if (text.includes('hotel') || text.includes('stay')) {
-    return activeTrip.selectedHotel
-      ? `Your selected stay is ${activeTrip.selectedHotel.name}, estimated at ${money(activeTrip.selectedHotel.totalStayCost)} for the trip.`
-      : `No hotel is selected yet for ${activeTrip.destination}. Open the Hotels tab to compare recommendations.`;
-  }
-
-  // 13. Default active trip summary
-  const firstDay = activeTrip.itinerary?.[0];
-  const stops = firstDay?.activities?.map((item) => item.place).slice(0, 3).join(', ');
-  return `Your ${activeTrip.days}-day ${activeTrip.destination} plan is active. Day 1 focuses on ${stops || 'the saved itinerary'}. You can ask me general questions about any city in Pakistan, or specific questions about your itinerary, budget, expenses, hotels, and safety alerts.`;
-}
-
+// Clean reasoning tags (<think>...</think>) and strip any accidental emojis
 function cleanAssistantContent(content) {
-  const cleaned = String(content || '')
+  let cleaned = String(content || '')
     .replace(/<think>[\s\S]*?<\/think>\s*/gi, '')
+    // Remove Unicode emojis to uphold strict zero-emoji requirement
+    .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}]/gu, '')
     .trim();
 
   if (!cleaned || /^<think>/i.test(cleaned)) {
@@ -131,45 +20,199 @@ function cleanAssistantContent(content) {
   return cleaned;
 }
 
+// Extract matching application destination cards for rich interactive frontend rendering
+function extractDestinationCards(text) {
+  if (!text) return [];
+  const lower = text.toLowerCase();
+  const matched = [];
+
+  for (const dest of destinationsData) {
+    const destName = dest.name.toLowerCase();
+    const destId = dest.destinationId.toLowerCase();
+    if (lower.includes(destName) || lower.includes(destId)) {
+      matched.push({
+        id: dest.destinationId,
+        name: dest.name,
+        category: dest.category,
+        region: dest.region,
+        imageUrl: dest.imageUrl,
+        rating: dest.rating || 4.8,
+        description: dest.description,
+      });
+      if (matched.length >= 4) break;
+    }
+  }
+
+  return matched;
+}
+
+// Offline fallback knowledge generator when Groq API is disconnected
+function fallbackReply(message, trip, appContext = {}) {
+  const text = String(message || '').toLowerCase();
+  const tripHistory = appContext.tripHistory || [];
+  const activeAlerts = appContext.activeAlerts || [];
+  const activeTrip = appContext.activeTrip || trip;
+
+  // Itinerary generation request -> Guide to Plan a Trip feature
+  if (text.includes('itinerary') || text.includes('day-by-day') || text.includes('plan my trip') || text.includes('make a trip plan')) {
+    return 'Smart Travel Planner has a dedicated "Plan a Trip" feature that automatically creates day-by-day itineraries with custom budgets, transport options, hotel bookings, and routing. Please tap "Plan a Trip" in the main navigation menu to generate your complete travel plan.';
+  }
+
+  // Roman Urdu queries
+  if (text.includes('kahan') || text.includes('jagah') || text.includes('kesa') || text.includes('batao') || text.includes('safar') || text.includes('karein')) {
+    if (text.includes('family') || text.includes('bachon')) {
+      return 'Family ke sath safar ke liye Islamabad, Murree & Galyat, Swat Valley, aur Hunza Valley behtareen aur pur-aman maqamat hain. Yahan achi hotels, asan road access, aur safe mahol dastiyab hai.';
+    }
+    if (text.includes('peaceful') || text.includes('sukoon') || text.includes('khamosh')) {
+      return 'Pur-aman aur khamosh mahol ke liye Hunza Valley (Karimabad & Gulmit), Skardu ke Upper Kachura Lake, aur Neelum Valley (Arang Kel) shandar intikhab hain. Yahan qudrati khubsurti aur pur-sukoon faza milti hai.';
+    }
+    return 'Pakistan mein har khitte ki apni khubsurti hai. Paharon aur jheelon ke liye Northern Areas (Hunza, Skardu, Swat) behtareen hain. Saqafat aur tareekh ke liye Lahore aur Multan, jabke samandar ke liye Karachi aur Gwadar mashhoor hain. Aap kisi makhsoos shehar ya mausam ke bare mein pooch sakte hain.';
+  }
+
+  // Packing advice
+  if (text.includes('pack') || text.includes('what to wear') || text.includes('clothes') || text.includes('jacket')) {
+    return [
+      'Essential Packing Advice for Pakistan Travel:',
+      '',
+      '- Mountain & Northern Areas: Warm thermal layers, windproof fleece jacket, waterproof hiking boots, sunscreen, UV sunglasses, personal first-aid kit, and power banks.',
+      '- Summer & Coastal Areas: Breathable cotton clothing, sun hat, comfortable walking sandals, and hydration supplies.',
+      '- Cultural & Religious Sites: Modest, respectful attire with shoulders and knees covered, plus a scarf for mosque entry.',
+    ].join('\n');
+  }
+
+  // Safety advice
+  if (text.includes('safety') || text.includes('safe') || text.includes('precaution') || text.includes('emergency')) {
+    return [
+      'Travel Safety Guidelines for Pakistan:',
+      '',
+      '1. Mountain Roads: Travel during daylight hours, check weather forecasts for landslide warnings, and use experienced local drivers on high-altitude jeep tracks.',
+      '2. Health & Altitude: Acclimatize gradually above 8,000 feet, stay well-hydrated, and carry altitude medication if heading to Deosai or Khunjerab Pass.',
+      '3. Emergency Contacts: National Highway & Motorway Police (130), Rescue 1122, and local tourist police helplines.',
+      '4. Connectivity: Carry a regional SIM card (such as SCOM or Telenor) with reliable network coverage in Gilgit-Baltistan and Kashmir.',
+    ].join('\n');
+  }
+
+  // Specific city match in database
+  const matchedDest = destinationsData.find((d) => text.includes(d.name.toLowerCase()));
+  if (matchedDest) {
+    return [
+      `Destination: ${matchedDest.name} (${matchedDest.region})`,
+      `- Category: ${matchedDest.category}`,
+      `- Description: ${matchedDest.description}`,
+      `- Popular Sights: ${(matchedDest.popularActivities || []).slice(0, 4).join(', ')}`,
+      `- Recommended Season: ${matchedDest.bestTimeToVisit || 'Spring to Autumn'}`,
+      `- Travel Difficulty: ${matchedDest.travelDifficulty || 'Easy'}`,
+    ].join('\n');
+  }
+
+  // Saved trip history
+  if (text.includes('history') || text.includes('saved trip') || text.includes('previous')) {
+    if (!tripHistory.length) return 'You do not have any saved trips in your account yet. Generate an itinerary through the Plan a Trip feature to view your saved travel history.';
+    const summaries = tripHistory.slice(0, 5).map((t) => `${t.destination}: ${t.days} days, budget ${money(t.budget || t.plannedBudget)}`);
+    return `You have ${tripHistory.length} saved trip(s): ${summaries.join('; ')}.`;
+  }
+
+  // Active alerts
+  if (text.includes('alert') || text.includes('warning') || text.includes('weather alert')) {
+    if (!activeAlerts.length) return 'There are no active travel alerts recorded for your current routes. Weather and highway conditions are reported normal.';
+    return `Active Alerts (${activeAlerts.length}): ${activeAlerts.slice(0, 4).map((a) => `${a.severity} - ${a.title}: ${a.message}`).join('; ')}`;
+  }
+
+  // General travel query
+  return [
+    'Welcome to SafarSaathi AI, your intelligent travel and tourism companion for Smart Travel Planner.',
+    '',
+    'I can assist you with:',
+    '- Destination discovery and regional comparisons (e.g. Hunza vs Skardu)',
+    '- Best seasons, packing suggestions, and travel precautions',
+    '- Local culture, traditional cuisine, and regional heritage across Pakistan',
+    '- Transport guidance, accommodation advice, and travel tips',
+    '',
+    'Feel free to ask any travel question in English, conversational English, or Roman Urdu!',
+  ].join('\n');
+}
+
+/**
+ * SafarSaathi AI Travel Assistant
+ * Handles conversational queries across all tourism topics in English, Roman Urdu, and Urdu.
+ */
 async function answerTravelQuestion({ message, trip, appContext = {}, history = [] }) {
   const safeMessage = String(message || '').trim().slice(0, 1000);
   if (!safeMessage) throw new Error('Message is required');
 
+  const destinationCards = extractDestinationCards(safeMessage);
+
+  // Build application destinations summary for AI context grounding
+  const topDestinationsSummary = destinationsData.slice(0, 25).map((d) => (
+    `${d.name} (${d.region}, ${d.category}): ${d.description.slice(0, 90)}... Top spots: ${(d.popularActivities || []).slice(0, 3).join(', ')}`
+  )).join('\n');
+
   try {
-    const content = await createChatCompletion({
+    const rawContent = await createChatCompletion({
       temperature: 0.35,
       maxTokens: 800,
       messages: [
         {
           role: 'system',
           content: [
-            'You are an expert, friendly AI Travel Assistant and Pakistan Travel Guide inside the Smart Travel Planner application.',
-            'You have two distinct capabilities:',
-            '1. GENERAL TRAVEL ADVICE ACROSS PAKISTAN: When the user asks general questions (such as "which city is more beautiful in Pakistan?", "best places to visit for families", "recommend places to go", "compare Hunza vs Skardu", "best food in Lahore", "best time to visit Naran", packing advice, cultural spots, or road hazards), answer warmly, knowledgeably, and thoroughly about Pakistan.',
-            'DO NOT force general questions to talk about their current active trip! Answer their general question directly with insightful facts and recommendations.',
-            '2. USER TRIP & ACCOUNT ASSISTANCE: When the user specifically asks about their current trip, saved trips, day-by-day itinerary, budget breakdown, logged expenses, hotel bookings, route, or alerts, consult the authenticated user context JSON attached below.',
-            'Formatting rules: Format answers clearly using markdown (bullet points, bold text, or concise tables). Keep replies under 250 words so they read beautifully on a mobile screen.',
+            'You are SafarSaathi AI, the intelligent travel and tourism companion of Smart Travel Planner.',
+            'You help users understand, discover, compare and explore travel destinations and tourism-related topics.',
+            'You can answer a broad range of travel and tourism questions, not just a limited set of predefined FAQs.',
+            'Understand the user\'s actual question and respond with relevant, helpful information.',
+            'Communicate naturally and conversationally, just like a chat with a knowledgeable travel expert.',
+            'Understand and fluently respond in English, conversational English, Roman Urdu, and Urdu based on the user\'s message.',
+            'Adapt to the user\'s interests, budget preferences, and travel context when they share them.',
+            'Use available application destination data when recommending destinations within Smart Travel Planner.',
+            'You are primarily specialized in Pakistan tourism, but you can also answer general international travel questions.',
+            'DO NOT force every conversation into destination recommendations if they ask about packing, culture, transport, or safety.',
+            'DO NOT automatically generate a detailed day-by-day itinerary. Smart Travel Planner has a separate dedicated Plan a Trip feature. You must guide users to that feature when they explicitly want a complete itinerary.',
+            'Never invent current weather, hotel availability, travel prices, road conditions, safety alerts, visa requirements, or other time-sensitive facts. If reliable live information is unavailable, explain the limitation honestly.',
+            'Do not use any emojis in your response. Use clear text, markdown bullet points, and clean typography.',
+            'Keep responses concise, informative, and formatted cleanly for mobile and web screens (under 250 words unless detailed advice is requested).',
           ].join(' '),
         },
-        { role: 'system', content: `Authenticated user context JSON: ${JSON.stringify(appContext)}` },
+        {
+          role: 'system',
+          content: `Application destination catalog preview:\n${topDestinationsSummary}`,
+        },
+        {
+          role: 'system',
+          content: `Authenticated user context: ${JSON.stringify({
+            activeTrip: appContext.activeTrip ? { destination: appContext.activeTrip.destination, days: appContext.activeTrip.days, budget: appContext.activeTrip.budget } : null,
+            savedTripsCount: (appContext.tripHistory || []).length,
+            activeAlertsCount: (appContext.activeAlerts || []).length,
+          })}`,
+        },
         ...history.slice(-8).map((item) => ({ role: item.role, content: String(item.content).slice(0, 1200) })),
         { role: 'user', content: safeMessage },
       ],
     });
 
+    const cleaned = cleanAssistantContent(rawContent).slice(0, 4000);
+    const matchedCards = destinationCards.length > 0 ? destinationCards : extractDestinationCards(cleaned);
+
     return {
-      content: cleanAssistantContent(content).slice(0, 4000),
+      content: cleaned,
       model: groqConfig().model,
       fallbackUsed: false,
+      recommendedDestinations: matchedCards,
     };
   } catch (error) {
-    console.warn(`[chat] Groq unavailable; using deterministic reply. Reason: ${error.message}`);
+    console.warn(`[chat] Groq unavailable; using deterministic knowledge engine. Reason: ${error.message}`);
+    const fallback = cleanAssistantContent(fallbackReply(safeMessage, trip, appContext));
+    const matchedCards = destinationCards.length > 0 ? destinationCards : extractDestinationCards(fallback);
+
     return {
-      content: fallbackReply(safeMessage, trip, appContext),
-      model: 'deterministic-fallback',
+      content: fallback,
+      model: 'deterministic-knowledge-engine',
       fallbackUsed: true,
+      recommendedDestinations: matchedCards,
     };
   }
 }
 
-module.exports = { answerTravelQuestion, fallbackReply };
+module.exports = {
+  answerTravelQuestion,
+  fallbackReply,
+  extractDestinationCards,
+};

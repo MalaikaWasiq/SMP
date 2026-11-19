@@ -1,16 +1,16 @@
 const getFetch = require('../utils/fetch');
 
 const DEFAULT_GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
-const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
-const FALLBACK_GROQ_MODELS = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'];
-const DEFAULT_TIMEOUT_MS = 25000;
+const DEFAULT_GROQ_MODEL = 'qwen/qwen3.6-27b';
+const FALLBACK_GROQ_MODELS = ['qwen/qwen3.6-27b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
+const DEFAULT_TIMEOUT_MS = 5000;
 
 function groqConfig() {
   return {
     apiKey: process.env.GROQ_API_KEY,
     model: process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL,
     baseUrl: process.env.GROQ_BASE_URL || DEFAULT_GROQ_BASE_URL,
-    timeoutMs: Number(process.env.GROQ_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS,
+    timeoutMs: Math.min(Number(process.env.GROQ_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS, 5000),
   };
 }
 
@@ -63,7 +63,10 @@ async function createChatCompletion({
         error.code = 'GROQ_API_ERROR';
         error.statusCode = response.status;
         lastError = error;
-        console.warn(`[groq] Model ${modelToTry} failed (${response.status}): ${message}. Trying fallback...`);
+        console.warn(`[groq] Model ${modelToTry} failed (${response.status}): ${message}.`);
+        if (response.status === 401 || response.status === 403 || response.status === 404 || data?.error?.code === 'invalid_api_key') {
+          break;
+        }
         continue;
       }
 
@@ -82,7 +85,8 @@ async function createChatCompletion({
       } else {
         lastError = err;
       }
-      console.warn(`[groq] Error with model ${modelToTry}: ${err.message}. Trying next candidate...`);
+      console.warn(`[groq] Error with model ${modelToTry}: ${err.message}.`);
+      break;
     } finally {
       clearTimeout(timeout);
     }

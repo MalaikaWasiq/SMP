@@ -5,7 +5,7 @@ import PrimaryButton from '../components/PrimaryButton';
 import { useApp } from '../context/AppContext';
 import Text from '../components/AppText';
 
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+const GMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@gmail\.com$/i;
 const NAME_REGEX = /^[a-zA-Z\s.'-]+$/;
 
 export default function SignupScreen({ navigation }) {
@@ -45,11 +45,11 @@ export default function SignupScreen({ navigation }) {
       newErrors.fullName = 'Name should only contain letters and spaces';
     }
 
-    // Email
+    // Email (Strict Gmail enforcement)
     if (!trimmedEmail) {
       newErrors.email = 'Email address is required';
-    } else if (!EMAIL_REGEX.test(trimmedEmail)) {
-      newErrors.email = 'Enter a valid email address (e.g. name@example.com)';
+    } else if (!GMAIL_REGEX.test(trimmedEmail)) {
+      newErrors.email = 'Please enter a valid Gmail address (e.g. username@gmail.com). Only @gmail.com is allowed.';
     }
 
     // Password
@@ -120,7 +120,7 @@ export default function SignupScreen({ navigation }) {
         autoCapitalize="none"
         autoCorrect={false}
         autoComplete="email"
-        placeholder="name@example.com"
+        placeholder="username@gmail.com"
         returnKeyType="next"
         onSubmitEditing={() => passwordRef.current?.focus()}
         error={errors.email}

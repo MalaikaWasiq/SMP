@@ -1,39 +1,133 @@
+const { calculateFoodCost, getFoodMenuForDestination } = require('./foodMenuService');
+
 function round(value) {
   return Math.max(0, Math.round(Number(value) || 0));
 }
 
-// Vehicle Catalog matching client's Pakistani vehicle options
+// Vehicle Catalog matching standard Pakistani rental and tourism fleet
 const VEHICLES = [
-  { id: 'economy-alto', name: 'Suzuki Alto 660cc / Mehran', category: 'Economy (Budget)', tier: 'Low', capacity: '1 - 3 Persons', luggage: '2 Luggage Bags', maxPersons: 3, rentPerDay: 3000, fuelPerDay: 2000, icon: 'car-outline', desc: 'Fuel efficient compact budget hatchback' },
-  { id: 'economy-mira', name: 'Daihatsu Mira / Suzuki Every', category: 'Economy (Mini MPV)', tier: 'Low', capacity: '1 - 4 Persons', luggage: '3 Luggage Bags', maxPersons: 4, rentPerDay: 3800, fuelPerDay: 2200, icon: 'car-outline', desc: 'Economical Japanese Kei car / mini MPV' },
-  { id: 'compact-wagonr', name: 'Suzuki Wagon R / Cultus VXL', category: 'Hatchback (Comfort)', tier: 'Low', capacity: '1 - 4 Persons', luggage: '3 Luggage Bags', maxPersons: 4, rentPerDay: 4000, fuelPerDay: 2500, icon: 'car-outline', desc: 'Spacious tall-boy hatchback' },
-  { id: 'compact-vitz', name: 'Toyota Vitz / Yaris 1.3L', category: 'Hatchback / Compact', tier: 'Medium-Low', capacity: '1 - 4 Persons', luggage: '3 Luggage Bags', maxPersons: 4, rentPerDay: 4800, fuelPerDay: 2800, icon: 'car-outline', desc: 'Modern reliable compact car' },
-  { id: 'sedan-city', name: 'Honda City 1.3L / 1.5L', category: 'Sedan (Economy)', tier: 'Medium', capacity: '3 - 5 Persons', luggage: '4 Luggage Bags', maxPersons: 5, rentPerDay: 5500, fuelPerDay: 3200, icon: 'car-sport-outline', desc: 'Smooth city & highway comfortable sedan' },
-  { id: 'comfort-sedan', name: 'Toyota Corolla GLi / Altis', category: 'Sedan (Auto)', tier: 'Medium', capacity: '3 - 5 Persons', luggage: '4 Luggage Bags', maxPersons: 5, rentPerDay: 6500, fuelPerDay: 3600, icon: 'car-sport-outline', desc: 'Smooth highway drive, AC sedan with 4 bags boot' },
-  { id: 'sedan-civic', name: 'Honda Civic Oriel 1.8L', category: 'Sedan (Executive)', tier: 'Medium-High', capacity: '3 - 5 Persons', luggage: '4 Luggage Bags', maxPersons: 5, rentPerDay: 7500, fuelPerDay: 4000, icon: 'car-sport-outline', desc: 'Executive premium sedan' },
-  { id: 'mpv-karvaan', name: 'Changan Karvaan Plus MPV', category: 'MPV (Budget Van)', tier: 'Medium', capacity: '4 - 7 Persons', luggage: '5 Luggage Bags', maxPersons: 7, rentPerDay: 8000, fuelPerDay: 4200, icon: 'bus-outline', desc: 'Affordable 7-seater passenger MPV' },
-  { id: 'family-brv', name: 'Honda BR-V 7-Seater MPV', category: 'Family MPV (7-Seater)', tier: 'Medium-High', capacity: '4 - 6 Persons', luggage: '5 Luggage Bags', maxPersons: 6, rentPerDay: 8800, fuelPerDay: 4600, icon: 'car-sport-outline', desc: 'Versatile 7-seater MPV for family & luggage' },
-  { id: 'suv-sportage', name: 'KIA Sportage / Tucson AWD', category: 'Compact SUV', tier: 'High', capacity: '4 - 5 Persons', luggage: '5 Luggage Bags', maxPersons: 5, rentPerDay: 11000, fuelPerDay: 5200, icon: 'trail-sign-outline', desc: 'Modern AWD compact crossover' },
-  { id: 'suv-fortuner', name: 'Toyota Fortuner / Revo 4x4', category: 'Full SUV 4x4', tier: 'High', capacity: '4 - 7 Persons', luggage: '6 Luggage Bags', maxPersons: 7, rentPerDay: 13000, fuelPerDay: 5800, icon: 'trail-sign-outline', desc: 'Heavy duty 4x4 SUV for extreme mountain trails' },
-  { id: 'suv-4x4', name: 'Toyota Prado / Mountain 4x4 Jeep', category: '4x4 SUV (Luxury)', tier: 'High', capacity: '4 - 6 Persons', luggage: '6 Luggage Bags', maxPersons: 6, rentPerDay: 14000, fuelPerDay: 6000, icon: 'trail-sign-outline', desc: 'High ground clearance and power for mountain climbs' },
-  { id: 'van-hiace', name: 'Toyota HiAce Standard Commuter', category: 'Van / Group', tier: 'Group', capacity: '7 - 11 Persons', luggage: '8 Luggage Bags', maxPersons: 11, rentPerDay: 13500, fuelPerDay: 6500, icon: 'bus-outline', desc: 'Standard high-roof passenger van' },
-  { id: 'grand-cabin', name: 'Toyota HiAce Grand Cabin VIP', category: 'Van / Luxury Group', tier: 'Group', capacity: '8 - 14 Persons', luggage: '10 Luggage Bags', maxPersons: 14, rentPerDay: 16000, fuelPerDay: 7500, icon: 'bus-outline', desc: 'Executive high-roof van with dual AC for joint families' },
-  { id: 'luxury-coaster', name: 'Toyota Coaster Saloon Mini-Bus', category: 'Coaster (Executive)', tier: 'Large Group', capacity: '14 - 24 Persons', luggage: '20 Luggage Bags', maxPersons: 24, rentPerDay: 22000, fuelPerDay: 9500, icon: 'bus-outline', desc: 'Spacious tourist saloon bus with luggage bay' },
+  {
+    id: 'economy-mehran',
+    name: 'Suzuki Mehran / Alto 660cc',
+    category: 'Economy Hatchback',
+    tier: 'Economy',
+    capacity: '1 - 3 Persons',
+    luggage: '2 Luggage Bags',
+    maxPersons: 3,
+    rentPerDay: 3000,
+    fuelPerDay: 2000,
+    icon: 'car-outline',
+    desc: 'Fuel-efficient compact budget hatchback for 1 to 3 passengers with 2 luggage bags.',
+  },
+  {
+    id: 'compact-wagonr',
+    name: 'Suzuki Wagon R / Cultus VXL',
+    category: 'Comfort Hatchback',
+    tier: 'Economy',
+    capacity: '1 - 4 Persons',
+    luggage: '3 Luggage Bags',
+    maxPersons: 4,
+    rentPerDay: 4000,
+    fuelPerDay: 2500,
+    icon: 'car-outline',
+    desc: 'Tall-boy spacious hatchback with comfortable seating for up to 4 passengers.',
+  },
+  {
+    id: 'comfort-sedan',
+    name: 'Toyota Corolla GLi / Altis',
+    category: 'Executive Sedan',
+    tier: 'Sedan',
+    capacity: '1 - 4 Persons',
+    luggage: '4 Luggage Bags',
+    maxPersons: 4,
+    rentPerDay: 6500,
+    fuelPerDay: 3600,
+    icon: 'car-sport-outline',
+    desc: 'Reliable highway AC sedan with generous trunk capacity for family travel.',
+  },
+  {
+    id: 'sedan-civic',
+    name: 'Honda Civic Oriel 1.8L',
+    category: 'Premium Sedan',
+    tier: 'Sedan',
+    capacity: '1 - 4 Persons',
+    luggage: '4 Luggage Bags',
+    maxPersons: 4,
+    rentPerDay: 7500,
+    fuelPerDay: 4000,
+    icon: 'car-sport-outline',
+    desc: 'Premium executive sedan with sunroof and high driving comfort.',
+  },
+  {
+    id: 'family-brv',
+    name: 'Honda BR-V 7-Seater MPV',
+    category: 'Family MPV',
+    tier: 'MPV',
+    capacity: '4 - 6 Persons',
+    luggage: '5 Luggage Bags',
+    maxPersons: 6,
+    rentPerDay: 9000,
+    fuelPerDay: 4800,
+    icon: 'car-sport-outline',
+    desc: 'Spacious 7-seater MPV with folding rear seats for family vacations.',
+  },
+  {
+    id: 'suv-4x4',
+    name: 'Toyota Prado / Mountain 4x4 Jeep',
+    category: '4x4 Mountain SUV',
+    tier: 'SUV',
+    capacity: '4 - 6 Persons',
+    luggage: '5 Luggage Bags',
+    maxPersons: 6,
+    rentPerDay: 14000,
+    fuelPerDay: 6000,
+    icon: 'trail-sign-outline',
+    desc: 'Heavy-duty 4x4 with high ground clearance for rugged mountain passes.',
+  },
+  {
+    id: 'grand-cabin',
+    name: 'Toyota HiAce Grand Cabin',
+    category: 'Executive Passenger Van',
+    tier: 'Van',
+    capacity: '7 - 12 Persons',
+    luggage: '10 Luggage Bags',
+    maxPersons: 12,
+    rentPerDay: 15000,
+    fuelPerDay: 7500,
+    icon: 'bus-outline',
+    desc: 'High-roof commuter van with dual AC for joint families and tourist groups.',
+  },
+  {
+    id: 'luxury-coaster',
+    name: 'Toyota Coaster Saloon',
+    category: 'Tourist Saloon Bus',
+    tier: 'Bus',
+    capacity: '13 - 22 Persons',
+    luggage: '20 Luggage Bags',
+    maxPersons: 22,
+    rentPerDay: 22000,
+    fuelPerDay: 9500,
+    icon: 'bus-outline',
+    desc: 'Spacious tourist saloon bus with PA sound system and large luggage compartment.',
+  },
 ];
 
-function selectVehicleForGroup(numPersons, preferredVehicleId) {
+function selectVehicleForGroup(numPersons, preferredVehicleId, customDailyRate = null) {
+  const count = Math.max(1, Number(numPersons) || 1);
+
+  let vehicle = null;
   if (preferredVehicleId) {
     const norm = String(preferredVehicleId).toLowerCase().trim();
-    const found = VEHICLES.find((v) =>
+    vehicle = VEHICLES.find((v) =>
       v.id.toLowerCase() === norm ||
       v.tier.toLowerCase() === norm ||
       v.category.toLowerCase().includes(norm) ||
       v.name.toLowerCase().includes(norm) ||
       (norm.includes('mehran') && v.id === 'economy-mehran') ||
-      (norm.includes('alto') && (v.id === 'economy-mehran' || v.id === 'compact-wagonr')) ||
+      (norm.includes('alto') && v.id === 'economy-mehran') ||
       (norm.includes('wagon') && v.id === 'compact-wagonr') ||
       (norm.includes('corolla') && v.id === 'comfort-sedan') ||
-      (norm.includes('civic') && v.id === 'comfort-sedan') ||
+      (norm.includes('civic') && v.id === 'sedan-civic') ||
       (norm.includes('brv') && v.id === 'family-brv') ||
       (norm.includes('br-v') && v.id === 'family-brv') ||
       (norm.includes('prado') && v.id === 'suv-4x4') ||
@@ -41,554 +135,467 @@ function selectVehicleForGroup(numPersons, preferredVehicleId) {
       (norm.includes('hiace') && v.id === 'grand-cabin') ||
       (norm.includes('coaster') && v.id === 'luxury-coaster')
     );
-    if (found) return found;
   }
-  const count = Math.max(1, Number(numPersons) || 1);
-  if (count <= 3) return VEHICLES[0]; // Mehran / Alto
-  if (count <= 4) return VEHICLES[1]; // Wagon R
-  if (count <= 5) return VEHICLES[2]; // Corolla / Civic
-  if (count <= 6) return VEHICLES[3]; // BR-V / SUV
-  if (count <= 12) return VEHICLES[5]; // HiAce
-  return VEHICLES[6]; // Coaster
-}
 
-// Supervisor's 4-Category Budget Allocation Rule:
-// Transport 35%, Hotel/stay 35%, Food 15%, Activities & sights 10%, Safety Margin 5%
-// If budget is low (or food self-arranged): Hotel ~48%, Transport ~48%, Safety ~4%, Food 0%
-// Supervisor's Budget Allocation Rule:
-// Customized: Transport 35%, Hotel 35%, Food 15%, Activities 10%, Safety 5%
-// Company: Company Profit 10%, Transport 30%, Hotel 35%, Food 15%, Activities 5%, Safety 5%
-// If low budget: Hotel & Transport managed, Food 0%
-function calculateBudgetAllocation(totalBudget, isLowBudget = false, isCompany = false) {
-  const total = round(totalBudget);
-  if (isCompany) {
-    const profit = round(total * 0.10);
-    if (isLowBudget) {
-      const remainingForServices = total - profit;
-      const safety = round(remainingForServices * 0.04);
-      const available = Math.max(0, remainingForServices - safety);
-      const half = round(available / 2);
-      return {
-        transport: half,
-        hotels: available - half,
-        food: 0,
-        activities: 0,
-        companyProfit: profit,
-        safetyMargin: safety,
-        total,
-        isLowBudget: true,
-        isCompany: true,
-      };
-    }
+  // Automatic capacity fallback if preferred vehicle is omitted
+  if (!vehicle) {
+    if (count <= 3) vehicle = VEHICLES.find((v) => v.id === 'economy-mehran');
+    else if (count <= 4) vehicle = VEHICLES.find((v) => v.id === 'compact-wagonr');
+    else if (count <= 6) vehicle = VEHICLES.find((v) => v.id === 'family-brv');
+    else if (count <= 12) vehicle = VEHICLES.find((v) => v.id === 'grand-cabin');
+    else vehicle = VEHICLES.find((v) => v.id === 'luxury-coaster');
+  }
+
+  if (!vehicle) vehicle = VEHICLES[0];
+
+  // Support explicit daily rate overrides (e.g., luxury high-spec Coaster at Rs 40,000/day)
+  if (customDailyRate && Number(customDailyRate) > 0) {
     return {
-      transport: round(total * 0.30),
-      hotels: round(total * 0.35),
-      food: round(total * 0.15),
-      activities: round(total * 0.05),
-      companyProfit: profit,
-      safetyMargin: round(total * 0.05),
-      total,
-      isLowBudget: false,
-      isCompany: true,
+      ...vehicle,
+      rentPerDay: round(customDailyRate),
     };
   }
-  if (isLowBudget) {
-    const safety = round(total * 0.04);
-    const available = Math.max(0, total - safety);
-    const half = round(available / 2);
-    return {
-      transport: half,
-      hotels: available - half,
-      food: 0,
-      activities: 0,
-      safetyMargin: safety,
-      total,
-      isLowBudget: true,
-    };
-  }
-  return {
-    transport: round(total * 0.35),
-    hotels: round(total * 0.35),
-    food: round(total * 0.15),
-    activities: round(total * 0.10),
-    safetyMargin: round(total * 0.05),
-    companyProfit: 0,
-    total,
-    isLowBudget: false,
-    isCompany: false,
-  };
+
+  return vehicle;
 }
 
+// Activity rates catalog: distinguishes fixed event costs vs per-person costs
+const ACTIVITY_RATES = {
+  bbq_night: { name: 'Live Charcoal BBQ Night & Bonfire', rateType: 'fixed', price: 20000, desc: 'Private chef bonfire BBQ dinner event for the full group.' },
+  bonfire: { name: 'Alpine Forest Campfire & Stargazing', rateType: 'fixed', price: 8000, desc: 'Campfire setup, pine firewood, and warm herbal tea for the group.' },
+  boating: { name: 'Lake Motorboat / Shikara Cruise', rateType: 'per_person', price: 1500, desc: 'Scenic mountain lake boating pass.' },
+  jeep_safari: { name: 'Rugged 4x4 Off-Road Jeep Safari', rateType: 'fixed', price: 8500, desc: 'Mountain jeep trail access to alpine viewpoints.' },
+  heritage_pass: { name: 'Guided Cultural Heritage & Museum Pass', rateType: 'per_person', price: 600, desc: 'Official heritage landmark entries and local historian guide.' },
+};
+
+/**
+ * Intelligent Priority-Based Travel Package Budget Allocation Engine
+ * Priority Order:
+ * 1. Transportation
+ * 2. Food
+ * 3. Hotel / Accommodation
+ * 4. Additional Activities & Experiences
+ */
 function calculateBudget({
   budget,
   budgetPerPerson,
   numberOfPersons = 1,
   days = 1,
+  destination = '',
+  startLocation = '',
   itinerary = [],
-  route,
-  selectedHotel,
+  route = null,
+  selectedHotel = null,
   hotelSuggestions = [],
   expenses = [],
-  vehicleType,
+  vehicleType = null,
+  vehicleDailyRate = null,
   driverRequired = true,
-  tripMode = 'customized',
-  transportChoice = 'rental',
-  foodChoice = 'included',
+  tripMode = 'company', // 'company' | 'customized'
+  transportChoice = 'rental', // 'rental' | 'own'
+  foodChoice = 'included', // 'included' | 'self'
   hotelRequired = true,
   transportRequired = true,
   foodRequired = true,
   activitiesRequired = true,
   selectedActivities = [],
-  roomsQuantity = 1,
+  roomsQuantity = null,
   selectedMeals = { breakfast: true, lunch: false, dinner: true },
+  selectedFoodItems = {},
+  userConfirmedAdjustments = {}, // { transportDays: number, skipFood: boolean, skipHotel: boolean }
 }) {
-  const normalizedPersons = Math.max(1, Number(numberOfPersons) || 1);
-  const normalizedDays = Math.max(1, Number(days) || 1);
-  const nights = Math.max(1, normalizedDays - 1);
-
-  // Target Budget
-  const normalizedBudget = round(budget || (Number(budgetPerPerson) ? Number(budgetPerPerson) * normalizedPersons : 38500 * normalizedPersons));
-  const perPersonTarget = round(normalizedBudget / normalizedPersons);
-
-  // Supervisor Rule: If budget is low, system manages hotel stay & transport while customer handles food on their own
-  const isLowBudget = (normalizedBudget > 0 && normalizedBudget < (normalizedPersons * normalizedDays * 3500))
-    || foodChoice === 'self'
-    || foodRequired === false;
+  const persons = Math.max(1, Number(numberOfPersons) || 1);
+  const requestedDays = Math.max(1, Number(days) || 1);
+  const totalBudget = round(
+    Number(budget) || (Number(budgetPerPerson) ? Number(budgetPerPerson) * persons : 40000 * persons)
+  );
 
   const isCompany = tripMode === 'company';
-  const isTransportNeeded = Boolean(transportRequired !== false);
-  const isHotelNeeded = Boolean(hotelRequired !== false);
-  const isFoodNeeded = isLowBudget ? false : Boolean(foodRequired !== false);
-  const isActivitiesNeeded = isLowBudget ? false : Boolean(activitiesRequired !== false);
-  const isOwnCar = !isCompany && isTransportNeeded && transportChoice === 'own';
+  // Respect explicit false flags regardless of mode
+  const isTransportNeeded = transportRequired !== false && transportChoice !== 'none';
+  const isFoodNeeded = foodRequired !== false && foodChoice !== 'self';
+  const isHotelNeeded = hotelRequired !== false;
+  const isActivitiesNeeded = activitiesRequired !== false;
+  const isOwnCar = isTransportNeeded && transportChoice === 'own';
 
-  // For 4 persons on low budget, manage room quantity so 4 persons share Family Quad Room instead of 2 separate full-rate rooms
-  let effectiveRooms = Math.max(1, Number(roomsQuantity) || 1);
-  if (isLowBudget && normalizedPersons <= 4 && effectiveRooms > 1) {
-    effectiveRooms = 1;
-  }
-  const rooms = effectiveRooms;
+  // State trackers for priority evaluation
+  let currentRemaining = totalBudget;
+  const proposals = [];
+  const appliedAdjustments = [];
 
-  // 1. Budget Allocation Breakdown (Low Budget: ~48% Hotel, ~48% Transport, 0% Food, 4% Safety)
-  const companyProfit = isCompany ? round(normalizedBudget * 0.10) : 0;
-  // 1. Budget Allocation Breakdown (includes 10% company profit in company mode)
-  const allocation = calculateBudgetAllocation(normalizedBudget, isLowBudget, isCompany);
+  // =========================================================================
+  // PRIORITY 1: TRANSPORTATION
+  // =========================================================================
+  const vehicle = selectVehicleForGroup(persons, vehicleType, vehicleDailyRate);
+  const vehicleCapacity = Math.max(1, vehicle.maxPersons || 1);
+  const numVehicles = isTransportNeeded && !isOwnCar ? Math.ceil(persons / vehicleCapacity) : 1;
 
-  // 2. Hotel Calculation & Expense Controller
-  let hotels = 0;
-  let dailyHotelBudget = round(allocation.hotels / (nights * rooms));
-  let hotel = null;
-
-  if (isHotelNeeded) {
-    hotel = selectedHotel || hotelSuggestions.find((h) => h.withinBudget) || hotelSuggestions[0];
-    const hotelPricePerNight = hotel ? round(hotel.selectedRoom?.price || hotel.defaultRoom?.price || hotel.pricePerNight || 2800) : 2800;
-    const computedStay = round(hotel?.totalStayCost || (hotelPricePerNight * nights * rooms));
-    // In low budget mode, manage stay cost so it never exceeds allocated hotel budget
-    hotels = isLowBudget ? Math.min(computedStay, allocation.hotels) : computedStay;
-  } else {
-    hotels = 0; // Unselected service -> Strictly PKR 0!
+  let activeDays = requestedDays;
+  if (userConfirmedAdjustments?.transportDays && userConfirmedAdjustments.transportDays > 0) {
+    activeDays = Math.min(requestedDays, userConfirmedAdjustments.transportDays);
+    appliedAdjustments.push(`Transport duration adjusted to ${activeDays} days.`);
   }
 
-  // 3. Transport & Vehicle Selection Controller (Licensed Mountain Driver option & charges removed)
-  const vehicle = selectVehicleForGroup(normalizedPersons, vehicleType);
-  const driverChargePerDay = 0;
+  const isCustomRate = Boolean(vehicleDailyRate && Number(vehicleDailyRate) > 0);
+  const driverRatePerDay = isCustomRate ? 0 : (driverRequired ? 2000 : 0);
   const routeKm = Math.max(0, Number(route?.totalDistanceMeters || 0) / 1000);
-  const fuelEstimate = routeKm > 0 ? round(routeKm * 28) : round(vehicle.fuelPerDay * normalizedDays);
-  const tollParkingEstimate = round(Math.max(500, (routeKm > 0 ? routeKm * 4.5 : 800 * normalizedDays)));
+  const fuelPerDay = vehicle.fuelPerDay || 2000;
+  const fuelEstimate = isCustomRate ? 0 : (routeKm > 0 ? round(routeKm * 28) : round(fuelPerDay * activeDays));
+  const tollParkingEstimate = isCustomRate ? 0 : round(Math.max(500, routeKm > 0 ? routeKm * 4.5 : 800 * activeDays));
 
   let transportRent = 0;
   let transportDriver = 0;
   let transportFuel = 0;
   let transportTolls = 0;
-  let transport = 0;
+  let transportCost = 0;
+  let transportStatus = 'included';
 
-  if (!isTransportNeeded) {
-    // Unselected transport -> Strictly PKR 0!
-    transport = 0;
-  } else if (isCompany) {
-    transportRent = round(vehicle.rentPerDay * normalizedDays);
-    transportDriver = 0;
-    transportFuel = fuelEstimate;
-    transportTolls = tollParkingEstimate;
-    transport = transportRent + transportFuel + transportTolls;
+  if (!isTransportNeeded || userConfirmedAdjustments?.skipTransport) {
+    transportCost = 0;
+    transportStatus = 'self-managed';
+    appliedAdjustments.push('Transportation is self-managed by the customer.');
   } else if (isOwnCar) {
-    // Own Car: Rent PKR 0, Fuel self-managed, Driver fee 0
     transportRent = 0;
     transportFuel = 0;
     transportTolls = 0;
-    transportDriver = 0;
-    transport = 0;
+    transportDriver = driverRequired ? round(2000 * activeDays * numVehicles) : 0;
+    transportCost = transportDriver;
+    transportStatus = 'own-car';
   } else {
-    // Rental Car (Self-Drive / No Driver Fee)
-    transportRent = round(vehicle.rentPerDay * normalizedDays);
-    transportDriver = 0;
-    transportFuel = fuelEstimate;
-    transportTolls = tollParkingEstimate;
-    transport = transportRent + transportFuel + transportTolls;
-  }
+    // Rental fleet: vehicle cost = numVehicles * daily rate * days
+    transportRent = round(numVehicles * vehicle.rentPerDay * activeDays);
+    transportDriver = round(numVehicles * driverRatePerDay * activeDays);
+    transportFuel = round(numVehicles * fuelEstimate);
+    transportTolls = round(numVehicles * tollParkingEstimate);
+    transportCost = transportRent + transportDriver + transportFuel + transportTolls;
 
-  // In low budget mode, manage transport so it fits within allocation
-  if (isLowBudget && isTransportNeeded && !isOwnCar && transport > allocation.transport && allocation.transport > 0) {
-    transport = allocation.transport;
-    transportRent = round(transport * 0.55);
-    transportFuel = round(transport * 0.35);
-    transportTolls = transport - (transportRent + transportFuel);
-  }
+    // Check transport affordability against total budget
+    if (transportCost > totalBudget && totalBudget > 0) {
+      const dailyTransportUnit = isCustomRate ? round(numVehicles * vehicle.rentPerDay) : round(
+        (numVehicles * vehicle.rentPerDay) + (numVehicles * driverRatePerDay) + (numVehicles * fuelPerDay) + (numVehicles * 800)
+      );
+      const affordableDays = Math.max(1, Math.floor(totalBudget / Math.max(1, dailyTransportUnit)));
 
-  // 4. Food Policy Controller (Supervisor Rule: Customer handles food on their own if budget is low)
-  const breakfastRate = 450;
-  const lunchRate = 850;
-  const dinnerRate = 1200;
-  let food = 0;
-  let foodBreakdown = {
-    breakfast: { selected: false, ratePerDay: isLowBudget ? 0 : breakfastRate, total: 0, menu: isLowBudget ? 'Self-Arranged (Customer handles meals on their own)' : 'Pakistani Omelette, Paratha, Chana, Toast & Chai' },
-    lunch: { selected: false, ratePerDay: isLowBudget ? 0 : lunchRate, total: 0, menu: isLowBudget ? 'Self-Arranged (Customer handles meals on their own)' : 'Chicken Karahi, Biryani, Naan, Salad & Raita' },
-    dinner: { selected: false, ratePerDay: isLowBudget ? 0 : dinnerRate, total: 0, menu: isLowBudget ? 'Self-Arranged (Customer handles meals on their own)' : 'Mutton Handi / Shinwari Karahi, Roghani Naan, Kheer & Green Tea' },
-  };
-
-  if (!isFoodNeeded || isLowBudget) {
-    // Customer handles food on their own -> Strictly PKR 0 in package!
-    food = 0;
-  } else if (isCompany) {
-    // Full Company Package includes Breakfast & Dinner
-    foodBreakdown.breakfast.selected = true;
-    foodBreakdown.breakfast.total = round(breakfastRate * normalizedPersons * normalizedDays);
-    foodBreakdown.dinner.selected = true;
-    foodBreakdown.dinner.total = round(dinnerRate * normalizedPersons * normalizedDays);
-    food = foodBreakdown.breakfast.total + foodBreakdown.dinner.total;
-  } else {
-    // Customized Mode: Individual meal selections
-    let dailyRate = 0;
-    if (selectedMeals?.breakfast !== false) {
-      foodBreakdown.breakfast.selected = true;
-      foodBreakdown.breakfast.total = round(breakfastRate * normalizedPersons * normalizedDays);
-      dailyRate += breakfastRate;
-    }
-    if (selectedMeals?.lunch === true) {
-      foodBreakdown.lunch.selected = true;
-      foodBreakdown.lunch.total = round(lunchRate * normalizedPersons * normalizedDays);
-      dailyRate += lunchRate;
-    }
-    if (selectedMeals?.dinner !== false) {
-      foodBreakdown.dinner.selected = true;
-      foodBreakdown.dinner.total = round(dinnerRate * normalizedPersons * normalizedDays);
-      dailyRate += dinnerRate;
-    }
-    food = round(dailyRate * normalizedPersons * normalizedDays);
-  }
-
-  // 5. Activities & Sights Controller
-  let activities = 0;
-  let activeActivitiesList = [];
-
-  if (!isActivitiesNeeded) {
-    // Unselected activities -> Strictly PKR 0!
-    activities = 0;
-  } else if (isCompany) {
-    let packageActivities = 0;
-    for (const day of itinerary) {
-      for (const act of day.activities || []) {
-        const cost = round(act.estimatedCost);
-        if (cost <= 1500) packageActivities += cost;
-      }
-    }
-    activities = packageActivities > 0 ? packageActivities : allocation.activities;
-    activeActivitiesList = [
-      { name: 'Standard Sights, Viewpoints & Entry Coordination', cost: activities },
-      { name: 'Telenor 300 Tourist SIM Pack (30GB Data)', cost: 300 },
-    ];
-  } else {
-    // Customized mode: user selected specific activities; unselected items cost PKR 0!
-    if (Array.isArray(selectedActivities) && selectedActivities.length > 0) {
-      activities = selectedActivities.reduce((sum, act) => sum + round(act.price || act.cost || 0), 0);
-      activeActivitiesList = selectedActivities.map((act) => ({
-        name: act.name || act.title || 'Activity',
-        cost: round(act.price || act.cost || 0),
-      }));
-    } else {
-      activities = 0;
-    }
-  }
-
-  const safetyMargin = isCompany ? allocation.safetyMargin : 0;
-
-  // Smart Package Budget Guard (Supervisor Rule: Total package must NEVER exceed user budget)
-  let rawPackageCost = hotels + transport + food + activities + safetyMargin + companyProfit;
-  if (rawPackageCost > normalizedBudget && normalizedBudget > 0) {
-    if (isFoodNeeded && food > allocation.food) {
-      food = allocation.food;
-      foodBreakdown.breakfast.total = round(food * 0.35);
-      foodBreakdown.lunch.total = 0;
-      foodBreakdown.dinner.total = food - foodBreakdown.breakfast.total;
-    }
-    if (isTransportNeeded && transport > allocation.transport) {
-      transport = allocation.transport;
-      transportRent = round(transport * 0.50);
-      transportFuel = round(transport * 0.30);
-      transportTolls = round(transport * 0.05);
-      transportDriver = transport - (transportRent + transportFuel + transportTolls);
-    }
-    if (isActivitiesNeeded && activities > allocation.activities) {
-      activities = allocation.activities;
-    }
-    if (isHotelNeeded && hotels > allocation.hotels) {
-      hotels = allocation.hotels;
-    }
-  }
-
-  // Final Package Incurred / Deducted (Strictly <= normalizedBudget)
-  const totalPackageCost = normalizedBudget > 0 ? Math.min(normalizedBudget, hotels + transport + food + activities + safetyMargin + companyProfit) : (hotels + transport + food + activities + safetyMargin + companyProfit);
-  const pricePerPerson = round(totalPackageCost / normalizedPersons);
-
-  const remaining = Math.max(0, normalizedBudget - totalPackageCost);
-  const actualSpent = expenses.reduce((sum, expense) => sum + round(expense.amount), 0);
-  const actualRemaining = normalizedBudget - actualSpent;
-
-  // Cheaper Alternative Suggestions (When Budget Exceeded)
-  const optimizationSuggestions = [];
-  if (remaining < 0) {
-    // 1. Vehicle downgrade suggestion
-    if (isTransportNeeded && !isOwnCar && vehicle.id !== 'economy-mehran') {
-      const cheaperVehicle = VEHICLES[0]; // Mehran / Alto
-      const vehicleSavings = (vehicle.rentPerDay - cheaperVehicle.rentPerDay + vehicle.fuelPerDay - cheaperVehicle.fuelPerDay) * normalizedDays;
-      if (vehicleSavings > 0) {
-        optimizationSuggestions.push({
-          id: 'opt_vehicle',
-          type: 'vehicle',
-          title: `Switch vehicle to ${cheaperVehicle.name}`,
-          desc: `Switching to ${cheaperVehicle.name} (${cheaperVehicle.capacity}) saves fuel and rent.`,
-          savings: round(vehicleSavings),
-          actionPayload: { vehicleType: cheaperVehicle.id },
-        });
-      }
-    }
-
-
-    // 3. Hotel tier optimization
-    if (isHotelNeeded && hotel && (hotel.pricePerNight > 3500 || hotel.comfortLevel === 'Luxury')) {
-      const hotelSavings = Math.max(1000, (hotel.pricePerNight - 3200) * nights * rooms);
-      optimizationSuggestions.push({
-        id: 'opt_hotel',
-        type: 'hotel',
-        title: 'Switch to Budget Friendly Hotel / Room',
-        desc: `Choosing a verified standard economy room saves stay expenses.`,
-        savings: round(hotelSavings),
-        actionPayload: { comfortLevel: 'Basic' },
+      proposals.push({
+        priority: 1,
+        service: 'transportation',
+        type: 'duration_or_self_management',
+        requiredAmount: transportCost,
+        availableAmount: totalBudget,
+        shortfall: transportCost - totalBudget,
+        affordableDays,
+        message: `Your current budget is not sufficient for a ${requestedDays}-day ${vehicle.name} trip (PKR ${transportCost.toLocaleString()}). We can arrange a ${affordableDays}-day ${vehicle.name} option (PKR ${(affordableDays * dailyTransportUnit).toLocaleString()}) within your transport budget. Food and accommodation will be included only if their actual costs fit into the remaining budget. Otherwise, you can manage those independently.`,
+        suggestedOption: {
+          action: 'accept_revised_days',
+          days: affordableDays,
+        },
       });
     }
+  }
 
-    // 4. Meal optimization
-    if (isFoodNeeded && foodBreakdown.lunch?.selected) {
-      const lunchSavings = lunchRate * normalizedPersons * normalizedDays;
-      optimizationSuggestions.push({
-        id: 'opt_lunch',
-        type: 'food',
-        title: 'Self-arrange lunch at local dhabas',
-        desc: 'Excluding lunch from pre-paid bundle saves dining cost while traveling.',
-        savings: round(lunchSavings),
-        actionPayload: { lunch: false },
-      });
-    }
+  // Deduct transport from total budget
+  if (transportStatus !== 'self-managed') {
+    currentRemaining = Math.max(0, currentRemaining - transportCost);
+  }
 
-    // 5. Own Car suggestion
-    if (isTransportNeeded && !isCompany && !isOwnCar) {
-      const ownCarSavings = transportRent + transportFuel;
-      if (ownCarSavings > 0) {
-        optimizationSuggestions.push({
-          id: 'opt_own_car',
-          type: 'transport',
-          title: 'Use Personal / Own Car',
-          desc: 'Travel in your own vehicle to eliminate rental car charges completely.',
-          savings: round(ownCarSavings),
-          actionPayload: { transportChoice: 'own' },
-        });
+  // =========================================================================
+  // PRIORITY 2: HOTEL / ACCOMMODATION
+  // =========================================================================
+  const nights = Math.max(1, activeDays - 1);
+  const personsPerRoom = 2;
+  const numRooms = roomsQuantity && Number(roomsQuantity) > 0
+    ? Number(roomsQuantity)
+    : Math.ceil(persons / personsPerRoom);
+
+  const hotel = selectedHotel || hotelSuggestions[0] || null;
+  const roomPricePerNight = hotel
+    ? round(hotel.selectedRoom?.price || hotel.defaultRoom?.price || hotel.pricePerNight || 3500)
+    : 3500;
+  const rawHotelCost = isHotelNeeded ? round(numRooms * roomPricePerNight * nights) : 0;
+
+  let companyHotelCost = 0;
+  let hotelStatus = 'self-managed';
+
+  if (!isHotelNeeded || userConfirmedAdjustments?.skipHotel) {
+    companyHotelCost = 0;
+    hotelStatus = 'self-managed';
+    appliedAdjustments.push('Accommodation will be managed independently by the customer.');
+  } else if (rawHotelCost <= currentRemaining) {
+    companyHotelCost = rawHotelCost;
+    hotelStatus = 'included';
+    currentRemaining = currentRemaining - companyHotelCost;
+  } else {
+    // Insufficient remaining budget for hotel
+    companyHotelCost = 0;
+    hotelStatus = 'self-managed';
+    proposals.push({
+      priority: 2,
+      service: 'hotel',
+      type: 'insufficient_hotel_budget',
+      requiredAmount: rawHotelCost,
+      availableAmount: currentRemaining,
+      shortfall: rawHotelCost - currentRemaining,
+      message: `Your transportation can be arranged within your budget (PKR ${transportCost.toLocaleString()}), but your remaining budget (PKR ${currentRemaining.toLocaleString()}) is not sufficient for the selected hotel stay (PKR ${rawHotelCost.toLocaleString()}). Would you like to arrange transportation through us and manage hotel accommodation independently?`,
+      options: [
+        { id: 'continue_without_hotel', label: 'Yes, continue without hotel' },
+        { id: 'change_hotel_budget', label: 'Change hotel/budget options' },
+      ],
+    });
+  }
+
+  // =========================================================================
+  // PRIORITY 3: FOOD / MEALS
+  // =========================================================================
+  const foodCalculation = calculateFoodCost({
+    destination,
+    numberOfPersons: persons,
+    days: activeDays,
+    selectedMeals: isCompany ? { breakfast: true, lunch: false, dinner: true } : selectedMeals,
+    selectedItems: selectedFoodItems,
+  });
+
+  const rawFoodCost = isFoodNeeded ? foodCalculation.totalFoodCost : 0;
+  let companyFoodCost = 0;
+  let foodStatus = 'self-managed';
+
+  if (!isFoodNeeded || userConfirmedAdjustments?.skipFood) {
+    companyFoodCost = 0;
+    foodStatus = 'self-managed';
+    appliedAdjustments.push('Food will be managed independently by the customer.');
+  } else if (rawFoodCost <= currentRemaining) {
+    companyFoodCost = rawFoodCost;
+    foodStatus = 'included';
+    currentRemaining = currentRemaining - companyFoodCost;
+  } else {
+    // Insufficient remaining budget for food
+    companyFoodCost = 0;
+    foodStatus = 'self-managed';
+    const coveredServices = [];
+    if (transportStatus === 'included') coveredServices.push('transportation');
+    if (hotelStatus === 'included') coveredServices.push('hotel stay');
+    const coveredText = coveredServices.length > 0 ? `Your ${coveredServices.join(' and ')} can be arranged within your budget` : 'Your package';
+
+    proposals.push({
+      priority: 3,
+      service: 'food',
+      type: 'insufficient_food_budget',
+      requiredAmount: rawFoodCost,
+      availableAmount: currentRemaining,
+      shortfall: rawFoodCost - currentRemaining,
+      message: `${coveredText}, but your remaining budget (PKR ${currentRemaining.toLocaleString()}) is not sufficient for the selected food service (PKR ${rawFoodCost.toLocaleString()}). Would you like to proceed with us and manage food independently?`,
+      options: [
+        { id: 'continue_without_food', label: 'Yes, continue without food' },
+        { id: 'modify_selections', label: 'Modify my selections' },
+      ],
+    });
+  }
+
+  // =========================================================================
+  // PRIORITY 4: ADDITIONAL ACTIVITIES & EXPERIENCES
+  // =========================================================================
+  let rawActivitiesCost = 0;
+  const activeActivitiesList = [];
+
+  if (isActivitiesNeeded && Array.isArray(selectedActivities) && selectedActivities.length > 0) {
+    for (const act of selectedActivities) {
+      const actId = typeof act === 'string' ? act : (act.id || '');
+      const catalogItem = ACTIVITY_RATES[actId] || act;
+      let cost = 0;
+      if (catalogItem.rateType === 'fixed') {
+        cost = round(catalogItem.price || 0); // Fixed event cost, not multiplied by persons
+      } else {
+        cost = round((catalogItem.price || 0) * persons);
       }
+      rawActivitiesCost += cost;
+      activeActivitiesList.push({
+        id: actId,
+        name: catalogItem.name || 'Optional Activity',
+        rateType: catalogItem.rateType || 'per_person',
+        cost,
+      });
     }
   }
 
-  // Granular budget deduction audit summary
-  const budgetDeductions = {
-    hotels: {
-      amount: hotels,
-      isIncluded: isHotelNeeded,
-      roomsQuantity: rooms,
-      label: isHotelNeeded ? `${nights} Nights (${rooms} Room${rooms > 1 ? 's' : ''}) at ${hotel?.name || 'Verified Hotel'}` : 'No Hotel Required (PKR 0 cut)',
-      saved: isHotelNeeded ? 0 : allocation.hotels,
-    },
-    transport: {
-      amount: transport,
-      isIncluded: isTransportNeeded && transport > 0,
-      choice: !isTransportNeeded ? 'None' : (isOwnCar ? 'Own Car' : 'Rental Car'),
-      label: !isTransportNeeded
-        ? 'No Transport Required (PKR 0 cut)'
-        : (isOwnCar
-          ? (transportDriver > 0 ? `Own Car (Rent PKR 0) + Driver (PKR ${transportDriver.toLocaleString()})` : 'Own Car (PKR 0 rental cut)')
-          : `${vehicle.name} (Rent + Fuel + Driver + Tolls)`),
-      saved: !isTransportNeeded ? allocation.transport : (isOwnCar ? allocation.transport - transport : 0),
-    },
-    food: {
-      amount: food,
-      isIncluded: isFoodNeeded && food > 0,
-      label: !isFoodNeeded
-        ? 'Self-Arranged Food (PKR 0 cut)'
-        : (isCompany ? 'Breakfast + Dinner Included in Package' : `Custom Meal Plan (${Object.keys(foodBreakdown).filter(k => foodBreakdown[k].selected).join(' + ') || 'Self-Paid'})`),
-      saved: isFoodNeeded ? 0 : allocation.food,
-    },
-    activities: {
-      amount: activities,
-      isIncluded: isActivitiesNeeded && activities > 0,
-      count: activeActivitiesList.length,
-      label: activities > 0 ? `${activeActivitiesList.length} Selected Activities` : 'Standard Free Sights (PKR 0 cut)',
-      saved: activities > 0 ? 0 : allocation.activities,
-    },
-    ...(isCompany ? {
-      companyProfit: {
-        amount: companyProfit,
-        isIncluded: true,
-        label: 'Company Profit (10% of Total Budget)',
-        percentage: 10,
-        saved: 0,
-      },
-    } : {}),
-    totalDeducted: totalPackageCost,
-    remainingSaved: Math.max(0, remaining),
-  };
+  let companyActivitiesCost = 0;
+  let activitiesStatus = 'none';
+
+  if (!isActivitiesNeeded || rawActivitiesCost === 0) {
+    companyActivitiesCost = 0;
+    activitiesStatus = 'none';
+  } else if (rawActivitiesCost <= currentRemaining) {
+    companyActivitiesCost = rawActivitiesCost;
+    activitiesStatus = 'included';
+    currentRemaining = currentRemaining - companyActivitiesCost;
+  } else {
+    companyActivitiesCost = 0;
+    activitiesStatus = 'omitted_due_to_budget';
+    proposals.push({
+      priority: 4,
+      service: 'activities',
+      type: 'insufficient_activity_budget',
+      requiredAmount: rawActivitiesCost,
+      availableAmount: currentRemaining,
+      shortfall: rawActivitiesCost - currentRemaining,
+      message: 'Optional activities exceed the remaining budget and have been omitted from the company package.',
+    });
+  }
+
+  // Final Balance Calculations (Strictly Non-Negative)
+  const totalActualPackageCost = transportCost + companyFoodCost + companyHotelCost + companyActivitiesCost;
+  const remainingBudget = Math.max(0, totalBudget - totalActualPackageCost);
+  const perPersonExpense = round(totalActualPackageCost / persons);
+  const remainingBudgetPerPerson = round(remainingBudget / persons);
+
+  // Actual expense tracking calculations
+  const actualSpent = (Array.isArray(expenses) ? expenses : []).reduce(
+    (sum, item) => sum + (Number(item?.amount) || 0),
+    0
+  );
+  const actualRemaining = Math.max(0, totalBudget - actualSpent);
+  const actualExceeded = actualSpent > totalBudget;
+  const actualOverBy = Math.max(0, actualSpent - totalBudget);
+  const actualPercentUsed = totalBudget > 0 ? Math.min(100, Math.round((actualSpent / totalBudget) * 100)) : 0;
 
   return {
-    hotels,
-    food,
-    transport,
-    activities,
-    companyProfit,
-    misc: safetyMargin,
-    safetyMargin,
-    totalEstimated: totalPackageCost,
-    remaining,
-    percentUsed: normalizedBudget ? Math.round((totalPackageCost / normalizedBudget) * 100) : 0,
-    exceeded: remaining < 0,
-    overBy: Math.max(0, -remaining),
-    currency: 'PKR',
-    note: isCompany
-      ? 'All-inclusive Company Tour or Full Company Package.'
-      : 'Customize My Trip with selective service visibility.',
+    // Legacy numeric properties for complete backward compatibility
+    hotels: companyHotelCost,
+    hotelCost: companyHotelCost,
+    food: companyFoodCost,
+    foodCost: companyFoodCost,
+    transportCost,
+    activities: companyActivitiesCost,
+    activityCost: companyActivitiesCost,
+    companyProfit: Math.round(companyHotelCost * 0.10),
+    totalEstimated: totalActualPackageCost,
+    remaining: remainingBudget,
+    budgetPerPerson: round(totalBudget / persons),
+    pricePerPerson: perPersonExpense,
+    exceeded: totalActualPackageCost > totalBudget,
+    overBy: Math.max(0, totalActualPackageCost - totalBudget),
+    percentUsed: totalBudget > 0 ? Math.min(100, Math.round((totalActualPackageCost / totalBudget) * 100)) : 0,
     actualSpent,
     actualRemaining,
-    actualPercentUsed: normalizedBudget ? Math.round((actualSpent / normalizedBudget) * 100) : 0,
-    actualExceeded: actualRemaining < 0,
-    actualOverBy: Math.max(0, -actualRemaining),
-    optimizationSuggestions,
+    actualExceeded,
+    actualOverBy,
+    actualPercentUsed,
 
-    // Dimensions
-    numberOfPersons: normalizedPersons,
-    roomsQuantity: rooms,
-    budgetPerPerson: perPersonTarget,
-    dailyHotelBudget,
-    allocation,
-    budgetDeductions,
+    totalBudget,
+    totalActualPackageCost,
+    remainingBudget,
+    perPersonExpense,
+    remainingBudgetPerPerson,
+    numberOfPersons: persons,
+    days: activeDays,
+    requestedDays,
+    destination,
+    startLocation,
 
-    // Vehicle details
+    // Legacy package details and allocation objects for controller & screen compatibility
     vehicleDetails: {
       id: vehicle.id,
-      name: !isTransportNeeded ? 'No Transport (Self-Managed)' : (isOwnCar ? 'Own Car (Personal Vehicle)' : vehicle.name),
-      category: !isTransportNeeded ? 'None' : (isOwnCar ? 'Personal / Own Vehicle' : vehicle.category),
-      tier: vehicle.tier,
+      name: vehicle.name,
       capacity: vehicle.capacity,
+      maxPersons: vehicle.maxPersons,
       luggage: vehicle.luggage,
-      transportChoice: !isTransportNeeded ? 'none' : (isOwnCar ? 'own' : 'rental'),
-      rentPerDay: (!isTransportNeeded || isOwnCar) ? 0 : vehicle.rentPerDay,
-      fuelEstimate: (!isTransportNeeded || isOwnCar) ? 0 : fuelEstimate,
-      driverIncluded: false,
-      driverChargesPerDay: 0,
-      tollParkingEstimate: (!isTransportNeeded || isOwnCar) ? 0 : tollParkingEstimate,
-      totalTransportCost: transport,
+      rentPerDay: vehicle.rentPerDay,
+      numVehicles,
+      driverIncluded: driverRequired,
+      driverCharges: transportDriver,
+      fuelEstimate: transportFuel,
+      tollsEstimate: transportTolls,
+      isOwnCar,
     },
-
-    // Food policy details
-    foodPlan: {
-      breakfast: foodBreakdown.breakfast.selected ? foodBreakdown.breakfast.menu : 'Self-arranged / Not included',
-      lunch: foodBreakdown.lunch.selected ? foodBreakdown.lunch.menu : 'Self-paid (Highway dhaba / scenic lunch stop)',
-      dinner: foodBreakdown.dinner.selected ? foodBreakdown.dinner.menu : 'Self-paid / Not included',
-      breakfastTotal: foodBreakdown.breakfast.total,
-      lunchTotal: foodBreakdown.lunch.total,
-      dinnerTotal: foodBreakdown.dinner.total,
-      breakdown: foodBreakdown,
-      totalCost: food,
-      foodChoice: isFoodNeeded ? 'included' : 'self',
-    },
-
-    // Activity inclusions
-    activitiesPolicy: {
-      includedSpotsTotal: activities,
-      optionalActivitiesTotal: activeActivitiesList.length,
-      policy: isCompany
-        ? 'All standard sightseeing spots, viewpoints & connectivity included in Company Tour package.'
-        : 'Only selected optional activities are charged to your budget; unselected items cost PKR 0.',
-      activeList: activeActivitiesList,
-    },
-
-    // Tour Package Inclusions / Exclusions
     packageDetails: {
-      tripMode: isCompany ? 'company' : 'customized',
-      totalPackageCost,
-      pricePerPerson,
-      companyProfit,
-      numberOfPersons: normalizedPersons,
-      roomsQuantity: rooms,
-      days: normalizedDays,
-      nights,
-      roomType: !isHotelNeeded
-        ? 'No Hotel Required (Own Lodging)'
-        : (hotel?.comfortLevel === 'Luxury' ? 'VIP Luxury Suite' : hotel?.comfortLevel === 'Basic' ? 'Budget Friendly Room' : 'Deluxe Family Room'),
-      hotelName: !isHotelNeeded ? 'Self-Arranged Lodging' : (hotel?.name || 'Verified Hotel'),
-      hotelLocation: hotel?.city || 'Destination Center',
-      vehicleName: !isTransportNeeded ? 'No Transport (PKR 0)' : (isOwnCar ? 'Own Vehicle (PKR 0 rent)' : vehicle.name),
-      driverStatus: !isTransportNeeded ? 'N/A' : 'Self-Drive (Without Driver Fee)',
-      fuelStatus: !isTransportNeeded ? 'N/A' : (isOwnCar ? 'Self-Fueling (PKR 0 from budget)' : 'Fuel & Highway Motorway Tolls Included'),
-      foodSummary: isLowBudget
-        ? 'Customer Handles Food on Their Own (Self-Arranged to manage hotel stay & transport within budget)'
-        : (!isFoodNeeded
-          ? 'Self-Arranged Food & Dining (PKR 0 from budget)'
-          : (isCompany
-            ? 'Daily Breakfast Buffet + Fixed Menu Dinner Included (Lunch Self-Paid)'
-            : `Custom Meal Plan (PKR ${food.toLocaleString()})`)),
-      connectivity: isCompany
-        ? 'Telenor 300 Tourist SIM Pack (30GB 4G Data + 100 All-Net Minutes)'
-        : 'Standard Tourist Connectivity Available',
-      inclusions: isCompany
-        ? [
-            `Dedicated Vehicle (${vehicle.name}, ${vehicle.luggage}) with fuel & motorway tolls`,
-            `${nights} Nights accommodation (${rooms} Room${rooms > 1 ? 's' : ''}) at ${hotel?.name || 'Verified Hotel'}`,
-            isLowBudget ? 'Food: Self-Arranged by Customer on their own' : 'Daily complimentary hotel breakfast buffet',
-            isLowBudget ? 'Tour Manager Emergency Support' : 'Daily dinner (fixed Pakistani gourmet menu included)',
-            'All scenic viewpoint stops & entry coordination',
-            'Telenor 300 Tourist SIM Pack (30GB 4G Data)',
-            '24/7 Tour manager assistance & emergency helpline support',
-          ]
-        : [
-            isTransportNeeded
-              ? (isOwnCar ? 'Using Own Personal Car (Vehicle rent: PKR 0)' : `Rental Vehicle (${vehicle.name}, ${vehicle.luggage}) with fuel & tolls`)
-              : 'No transport service required (PKR 0 cut)',
-            'Self-drive / personal driver (No driver fee deducted)',
-            isHotelNeeded ? `${nights} Nights stay (${rooms} Room${rooms > 1 ? 's' : ''}) at ${hotel?.name || 'Hotel'}` : 'No hotel accommodation required (PKR 0 cut)',
-            isFoodNeeded ? 'Selected Pakistani meal plan included' : 'Self-arranged meals & dining (handled by customer on their own)',
-            activities > 0 ? `${activeActivitiesList.length} customized paid activities selected` : 'Self-guided free sights (PKR 0 activities cut)',
-          ],
-      exclusions: isCompany
-        ? [
-            'Midday lunch (self-paid at scenic local food stops)',
-            'Personal shopping, souvenirs, and high-altitude extreme adventure passes',
-          ]
-        : [
-            'Any unselected services or unbooked meals',
-            'Personal expenses and shopping',
-          ],
+      totalPackageCost: totalActualPackageCost,
+      pricePerPerson: perPersonExpense,
+      roomType: hotel?.comfortLevel === 'Luxury' ? 'Luxury Suite' : 'Standard Double / Family Room',
+      hotelName: hotel?.name || 'Verified Partner Hotel',
+      vehicleName: vehicle.name,
+      fuelStatus: isOwnCar ? 'Own Car (Rs. 0 rent)' : 'Dedicated AC Vehicle + Fuel + Tolls',
+      inclusions: [
+        'Dedicated AC Vehicle with fuel, tolls & road permits',
+        'Licensed mountain driver with daily allowance',
+        `${nights} Nights Hotel Stay in ${destination}`,
+        'Daily complimentary morning hotel breakfast',
+        'Nightly fixed-menu dinner for all travelers',
+        '24/7 Tour coordination & helpline support',
+      ],
     },
+    foodPlan: {
+      foodChoice: foodStatus === 'self-managed' ? 'self' : 'included',
+      breakfastTotal: foodCalculation.breakfast.total,
+      dinnerTotal: foodCalculation.dinner.total,
+      lunchTotal: foodCalculation.lunch.total,
+    },
+    allocation: {
+      transport: transportCost,
+      hotels: companyHotelCost,
+      food: companyFoodCost,
+      activities: companyActivitiesCost,
+      companyProfit: Math.round(companyHotelCost * 0.10),
+      safetyMargin: Math.round(totalBudget * 0.05),
+      total: totalActualPackageCost,
+    },
+
+    // Priority breakdown
+    transport: {
+      status: transportStatus,
+      cost: transportCost,
+      vehicle: {
+        id: vehicle.id,
+        name: vehicle.name,
+        capacity: vehicle.capacity,
+        maxPersons: vehicle.maxPersons,
+        luggage: vehicle.luggage,
+        rentPerDay: vehicle.rentPerDay,
+        numVehicles,
+      },
+      driverIncluded: driverRequired,
+      driverCharges: transportDriver,
+      fuelEstimate: transportFuel,
+      tollsEstimate: transportTolls,
+      isOwnCar,
+    },
+
+    food: {
+      status: foodStatus,
+      cost: companyFoodCost,
+      requestedCost: rawFoodCost,
+      regionName: foodCalculation.regionName,
+      breakfast: foodCalculation.breakfast,
+      lunch: foodCalculation.lunch,
+      dinner: foodCalculation.dinner,
+      note: foodStatus === 'self-managed' ? 'Food will be managed independently by the customer.' : 'Company-managed meal package.',
+    },
+
+    hotel: {
+      status: hotelStatus,
+      cost: companyHotelCost,
+      requestedCost: rawHotelCost,
+      hotelName: hotel?.name || 'Verified Partner Hotel',
+      roomType: hotel?.comfortLevel === 'Luxury' ? 'Luxury Suite' : 'Standard Double / Family Room',
+      numberOfRooms: numRooms,
+      nights,
+      pricePerRoomPerNight: roomPricePerNight,
+      note: hotelStatus === 'self-managed' ? 'Accommodation will be managed independently by the customer.' : 'Company-managed hotel stay.',
+    },
+
+    activities: {
+      status: activitiesStatus,
+      cost: companyActivitiesCost,
+      requestedCost: rawActivitiesCost,
+      list: activeActivitiesList,
+    },
+
+    proposals,
+    appliedAdjustments,
+    currency: 'PKR',
   };
 }
 
 module.exports = {
   calculateBudget,
-  calculateBudgetAllocation,
   selectVehicleForGroup,
   VEHICLES,
+  ACTIVITY_RATES,
 };

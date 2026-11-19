@@ -103,7 +103,7 @@ const FALLBACK_CATEGORY_DESTINATIONS = {
       category: 'Adventure & Nature',
       region: 'Khyber Pakhtunkhwa',
       bestTimeToVisit: 'May to September',
-      description: 'Pakistan’s top summer nature haven with Kunhar river rafting, legendary Lake Saif-ul-Malook, and Babusar Pass.',
+      description: "Pakistan's top summer nature haven with Kunhar river rafting, legendary Lake Saif-ul-Malook, and Babusar Pass.",
       imageUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80',
       weatherCity: 'Naran',
       rating: 4.8,
@@ -139,7 +139,7 @@ const FALLBACK_CATEGORY_DESTINATIONS = {
       category: 'Adventure & Nature',
       region: 'Federal Capital',
       bestTimeToVisit: 'September to April',
-      description: 'Pakistan’s serene capital nestled at the foothills of Margalla Hills, renowned for scenic hiking trails, Faisal Mosque, and Daman-e-Koh.',
+      description: "Pakistan's serene capital nestled at the foothills of Margalla Hills, renowned for scenic hiking trails, Faisal Mosque, and Daman-e-Koh.",
       imageUrl: 'https://images.unsplash.com/photo-1608481337062-4093bf3ed404?w=800&q=80',
       weatherCity: 'Islamabad',
       rating: 4.9,
@@ -189,7 +189,7 @@ const FALLBACK_CATEGORY_DESTINATIONS = {
       category: 'Cultural & Historical',
       region: 'Khyber Pakhtunkhwa',
       bestTimeToVisit: 'October to March',
-      description: 'One of South Asia’s oldest living cities, legendary for Qissa Khwani storytellers bazaar and world-famous chapli kababs.',
+      description: "One of South Asia's oldest living cities, legendary for Qissa Khwani storytellers bazaar and world-famous chapli kababs.",
       imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80',
       weatherCity: 'Peshawar',
       rating: 4.7,
@@ -239,7 +239,7 @@ const FALLBACK_CATEGORY_DESTINATIONS = {
       category: 'Coastal Areas',
       region: 'Balochistan',
       bestTimeToVisit: 'October to March',
-      description: 'Pakistan’s largest uninhabited offshore island with turquoise waters, coral reefs, sea turtle sanctuaries, and scuba diving.',
+      description: "Pakistan's largest uninhabited offshore island with turquoise waters, coral reefs, sea turtle sanctuaries, and scuba diving.",
       imageUrl: 'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=800&q=80',
       weatherCity: 'Pasni',
       rating: 4.9,
@@ -253,55 +253,55 @@ const CATEGORY_META = {
     id: 'All',
     title: 'All Destinations in Pakistan',
     heroTitle: 'All Destinations in Pakistan',
-    badgeText: '🇵🇰 48 Curated Destinations across Pakistan',
+    badgeText: '48 Curated Destinations across Pakistan',
     image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&q=80',
-    desc: 'Discover all 48 breathtaking destinations across Pakistan — from northern glaciers and alpine meadows to ancient heritage forts and sunny coastal beaches.',
-    iconEmoji: '🇵🇰',
+    desc: 'Discover all 48 breathtaking destinations across Pakistan - from northern glaciers and alpine meadows to ancient heritage forts and sunny coastal beaches.',
+    iconName: 'map-outline',
   },
   'Adventure & Nature': {
     id: 'Adventure & Nature',
     title: 'Adventure & Nature',
     heroTitle: 'Adventure & Nature',
-    badgeText: '🏔️ 10 Adventure & Hiking Destinations',
+    badgeText: '10 Adventure & Hiking Destinations',
     image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&q=80',
     desc: 'Discover breathtaking landscapes, thrilling adventures, hiking trails, valleys, lakes, and peaceful escapes across Pakistan.',
-    iconEmoji: '🏔️',
+    iconName: 'compass-outline',
   },
   'Northern Areas': {
     id: 'Northern Areas',
     title: 'Northern Areas',
     heroTitle: 'Northern Areas',
-    badgeText: '❄️ 13 Majestic Mountain Valleys & Glaciers',
+    badgeText: '13 Majestic Mountain Valleys & Glaciers',
     image: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&q=80',
     desc: "Explore Pakistan's majestic mountains, beautiful valleys, glaciers, lakes, and unforgettable northern landscapes.",
-    iconEmoji: '❄️',
+    iconName: 'snow-outline',
   },
   'Cultural & Historical': {
     id: 'Cultural & Historical',
     title: 'Cultural & Historical',
     heroTitle: 'Cultural & Historical',
-    badgeText: '🏛️ 17 Ancient Forts & Heritage Sites',
+    badgeText: '17 Ancient Forts & Heritage Sites',
     image: 'https://images.unsplash.com/photo-1588714477688-cf28a50e94f7?w=1200&q=80',
     desc: "Experience Pakistan's rich history, ancient civilizations, magnificent forts, heritage sites, and vibrant cultural cities.",
-    iconEmoji: '🏛️',
+    iconName: 'shield-outline',
   },
   'Coastal Areas': {
     id: 'Coastal Areas',
     title: 'Coastal Areas',
     heroTitle: 'Coastal Areas',
-    badgeText: '🌊 8 Arabian Sea Beaches & Coastal Peninsulas',
+    badgeText: '8 Arabian Sea Beaches & Coastal Peninsulas',
     image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=80',
     desc: "Relax by Pakistan's beautiful coastline, explore beaches and islands, and discover unforgettable coastal adventures.",
-    iconEmoji: '🌊',
+    iconName: 'water-outline',
   },
 };
 
 const CATEGORY_TABS = [
-  { id: 'All', title: 'All (48)', iconEmoji: '🇵🇰' },
-  { id: 'Adventure & Nature', title: 'Adventure (10)', iconEmoji: '🏔️' },
-  { id: 'Northern Areas', title: 'Northern (13)', iconEmoji: '❄️' },
-  { id: 'Cultural & Historical', title: 'Historical (17)', iconEmoji: '🏛️' },
-  { id: 'Coastal Areas', title: 'Coastal (8)', iconEmoji: '🌊' },
+  { id: 'All', title: 'All (48)', iconName: 'map-outline' },
+  { id: 'Adventure & Nature', title: 'Adventure (10)', iconName: 'compass-outline' },
+  { id: 'Northern Areas', title: 'Northern (13)', iconName: 'snow-outline' },
+  { id: 'Cultural & Historical', title: 'Historical (17)', iconName: 'shield-outline' },
+  { id: 'Coastal Areas', title: 'Coastal (8)', iconName: 'water-outline' },
 ];
 
 export default function CategoryCitiesScreen({ navigation, route }) {
@@ -417,7 +417,7 @@ export default function CategoryCitiesScreen({ navigation, route }) {
                 accessibilityRole="button"
                 accessibilityLabel={`Filter by ${tab.title}`}
               >
-                <AppText style={styles.categoryTabEmoji}>{tab.iconEmoji}</AppText>
+                <AppIcon name={tab.iconName} size={15} color={isTabSelected ? colors.white : colors.forest} style={{ marginRight: 6 }} />
                 <AppText style={[styles.categoryTabText, isTabSelected && styles.categoryTabTextSelected]}>
                   {tab.title}
                 </AppText>
@@ -545,7 +545,7 @@ export default function CategoryCitiesScreen({ navigation, route }) {
                         {item.popularActivities.slice(0, 3).map((act, aIdx) => (
                           <View key={aIdx} style={styles.activityChip}>
                             <AppText variant="caption" style={styles.activityChipText}>
-                              • {act}
+                              - {act}
                             </AppText>
                           </View>
                         ))}

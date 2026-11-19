@@ -20,8 +20,8 @@ export default function FloatingChatButton({ navigation, style }) {
         <View style={styles.onlineDot} />
       </View>
       <View style={styles.textWrap}>
-        <AppText style={styles.titleText}>AI Guide</AppText>
-        <AppText style={styles.subtitleText}>Chat 24/7</AppText>
+        <AppText style={styles.titleText}>SafarSaathi AI</AppText>
+        <AppText style={styles.subtitleText}>Travel Assistant</AppText>
       </View>
     </TouchableOpacity>
   );

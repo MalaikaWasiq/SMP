@@ -15,39 +15,39 @@ function formatWhatsAppText(trip) {
   const vehicle = trip?.vehicleDetails || {};
 
   const lines = [
-    `🌟 *SMART TRAVEL PLANNER PAKISTAN* 🌟`,
+    `*SMART TRAVEL PLANNER PAKISTAN*`,
     `----------------------------------------`,
-    `📍 *Destination:* ${trip?.destination || 'Pakistan'}`,
-    `🚗 *Starting From:* ${trip?.startLocation || 'Islamabad / Rawalpindi'}`,
-    `📅 *Duration:* ${trip?.days} Days (${nights} Nights)`,
-    `👥 *Travelers:* ${trip?.numberOfPersons || 1} Persons`,
-    `💰 *Total Estimated Package:* PKR ${Number(trip?.budgetBreakdown?.totalEstimated || trip?.budget || 0).toLocaleString()}`,
-    `💵 *Per Person Cost:* PKR ${Number(trip?.budgetBreakdown?.packageDetails?.pricePerPerson || Math.round(Number(trip?.budget || 0) / Math.max(1, trip?.numberOfPersons || 1))).toLocaleString()}`,
+    `*Destination:* ${trip?.destination || 'Pakistan'}`,
+    `*Starting From:* ${trip?.startLocation || 'Islamabad / Rawalpindi'}`,
+    `*Duration:* ${trip?.days} Days (${nights} Nights)`,
+    `*Travelers:* ${trip?.numberOfPersons || 1} Persons`,
+    `*Total Estimated Package:* PKR ${Number(trip?.budgetBreakdown?.totalEstimated || trip?.budget || 0).toLocaleString()}`,
+    `*Per Person Cost:* PKR ${Number(trip?.budgetBreakdown?.packageDetails?.pricePerPerson || Math.round(Number(trip?.budget || 0) / Math.max(1, trip?.numberOfPersons || 1))).toLocaleString()}`,
     ``,
-    `📋 *SERVICES BREAKDOWN:*`,
-    `• Transport: ${vehicle.name || 'Dedicated Vehicle'} (${vehicle.capacity || 'Passengers'}, ${vehicle.driverIncluded ? 'With Mountain Driver' : 'Self-Drive'})`,
-    `• Hotel: ${trip?.selectedHotel?.name || 'Verified Curated Hotel'} (${trip?.budgetBreakdown?.roomsQuantity || 1} Room(s))`,
-    `• Food: ${trip?.foodPlan?.dinnerTotal > 0 ? 'Breakfast + Dinner Included' : 'Self-Arranged Meals'}`,
-    `• Sights & Activities: ${trip?.budgetBreakdown?.activitiesPolicy?.policy || 'Standard Sightseeing & Viewpoints'}`,
+    `*SERVICES BREAKDOWN:*`,
+    `- Transport: ${vehicle.name || 'Dedicated Vehicle'} (${vehicle.capacity || 'Passengers'}, ${vehicle.driverIncluded ? 'With Mountain Driver' : 'Self-Drive'})`,
+    `- Hotel: ${trip?.selectedHotel?.name || 'Verified Curated Hotel'} (${trip?.budgetBreakdown?.roomsQuantity || 1} Room(s))`,
+    `- Food: ${trip?.foodPlan?.dinnerTotal > 0 ? 'Breakfast + Dinner Included' : 'Self-Arranged Meals'}`,
+    `- Sights & Activities: ${trip?.budgetBreakdown?.activitiesPolicy?.policy || 'Standard Sightseeing & Viewpoints'}`,
     ...(trip?.tripMode === 'company' || trip?.budgetBreakdown?.companyProfit > 0
-      ? [`• Company Profit & Margin (10%): PKR ${Number(trip?.budgetBreakdown?.companyProfit || Math.round(Number(trip?.budget || 0) * 0.10)).toLocaleString()}`]
+      ? [`- Company Profit & Margin (10%): PKR ${Number(trip?.budgetBreakdown?.companyProfit || Math.round(Number(trip?.budget || 0) * 0.10)).toLocaleString()}`]
       : []),
     ``,
-    `🗓️ *DAY-WISE ITINERARY:*`,
+    `*DAY-WISE ITINERARY:*`,
   ];
 
   (trip?.itinerary || []).forEach((day) => {
-    lines.push(`\n📅 *Day ${day.day}: ${markdownToPlainText(day.title)}*`);
-    if (day.weatherNote) lines.push(`🌤️ Weather: ${markdownToPlainText(day.weatherNote)}`);
+    lines.push(`\n*Day ${day.day}: ${markdownToPlainText(day.title)}*`);
+    if (day.weatherNote) lines.push(`Weather: ${markdownToPlainText(day.weatherNote)}`);
     (day.activities || []).forEach((act) => {
       const block = act.timeBlock ? `[${act.timeBlock}] ` : '';
-      lines.push(`  • ${block}${act.time} - ${act.place} (PKR ${Number(act.estimatedCost || 0).toLocaleString()})`);
+      lines.push(`  - ${block}${act.time} - ${act.place} (PKR ${Number(act.estimatedCost || 0).toLocaleString()})`);
       if (act.description) lines.push(`    _${markdownToPlainText(act.description)}_`);
     });
   });
 
-  lines.push(`\n🇵🇰 Generated via Smart Travel Planner Pakistan`);
-  lines.push(`📞 Need assistance? Bookings & emergency helpline available 24/7.`);
+  lines.push(`\nGenerated via Smart Travel Planner Pakistan`);
+  lines.push(`Need assistance? Bookings & emergency helpline available 24/7.`);
   return lines.join('\n');
 }
 
@@ -60,13 +60,13 @@ function tripHtml(trip) {
     <section class="day-section">
       <div class="day-header">
         <h2>Day ${Number(day.day)}: ${escapeHtml(markdownToPlainText(day.title))}</h2>
-        ${day.weatherNote ? `<div class="weather">🌤️ ${markdownToHtml(day.weatherNote)}</div>` : ''}
+        ${day.weatherNote ? `<div class="weather">${markdownToHtml(day.weatherNote)}</div>` : ''}
       </div>
       <div class="activities">
         ${(day.activities || []).map((activity) => `
           <div class="activity-item">
             <div class="activity-top">
-              <strong>${activity.timeBlock ? `<span class="time-block">${escapeHtml(activity.timeBlock)}</span> ` : ''}${escapeHtml(activity.time)} — ${escapeHtml(activity.place)}</strong>
+              <strong>${activity.timeBlock ? `<span class="time-block">${escapeHtml(activity.timeBlock)}</span> ` : ''}${escapeHtml(activity.time)} - ${escapeHtml(activity.place)}</strong>
               <span class="cost">PKR ${Number(activity.estimatedCost || 0).toLocaleString()}</span>
             </div>
             <div class="desc">${markdownToHtml(activity.description || '')}</div>
@@ -103,8 +103,8 @@ function tripHtml(trip) {
       </head>
       <body>
         <div class="header">
-          <h1>🇵🇰 ${escapeHtml(trip?.destination || 'Pakistan')} — Complete Travel Plan</h1>
-          <p style="margin: 0; color: #475569; font-size: 13px;">Journey Origin: <strong>${escapeHtml(trip?.startLocation || 'Islamabad')}</strong> • Mode: <strong>${escapeHtml(trip?.tripMode === 'company' ? 'Company Tour Package' : 'Customized Trip')}</strong></p>
+          <h1>${escapeHtml(trip?.destination || 'Pakistan')} - Complete Travel Plan</h1>
+          <p style="margin: 0; color: #475569; font-size: 13px;">Journey Origin: <strong>${escapeHtml(trip?.startLocation || 'Islamabad')}</strong> | Mode: <strong>${escapeHtml(trip?.tripMode === 'company' ? 'Company Tour Package' : 'Customized Trip')}</strong></p>
         </div>
 
         <div class="meta-grid">
@@ -194,7 +194,7 @@ export default function ShareExportScreen({ navigation }) {
             <View style={{ flex: 1 }}>
               <AppText variant="title">{currentTrip?.destination}</AppText>
               <AppText color={colors.muted}>
-                {currentTrip?.days} days ({Math.max(1, (currentTrip?.days || 1) - 1)} nights) • {currentTrip?.numberOfPersons || 1} travelers
+                {currentTrip?.days} days ({Math.max(1, (currentTrip?.days || 1) - 1)} nights) - {currentTrip?.numberOfPersons || 1} travelers
               </AppText>
             </View>
             <View style={styles.badgeCost}>
@@ -210,7 +210,7 @@ export default function ShareExportScreen({ navigation }) {
             <View key={day.day} style={styles.day}>
               <MarkdownText compact variant="bodyStrong">{`Day ${day.day}: ${day.title}`}</MarkdownText>
               <AppText variant="caption" color={colors.muted}>
-                {(day.activities || []).map((act) => `${act.timeBlock ? `[${act.timeBlock}] ` : ''}${act.place}`).join(' • ')}
+                {(day.activities || []).map((act) => `${act.timeBlock ? `[${act.timeBlock}] ` : ''}${act.place}`).join(' - ')}
               </AppText>
             </View>
           ))}

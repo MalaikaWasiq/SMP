@@ -67,22 +67,22 @@ export default function ItineraryScreen({ navigation, route }) {
 
   function getTimeBlockInfo(activity, index) {
     const rawBlock = activity.timeBlock;
-    if (rawBlock === 'Morning') return { icon: '🌅', label: 'Morning Block (Sightseeing)', color: '#b45309', bg: '#fef3c7' };
-    if (rawBlock === 'Afternoon') return { icon: '🥪', label: 'Afternoon Block (Lunch)', color: '#0369a1', bg: '#e0f2fe' };
-    if (rawBlock === 'Evening') return { icon: '📸', label: 'Evening Block (Sunset & Photo)', color: '#c2410c', bg: '#ffedd5' };
-    if (rawBlock === 'Night') return { icon: '🌙', label: 'Night Block (Dinner & Stay)', color: '#4338ca', bg: '#e0e7ff' };
+    if (rawBlock === 'Morning') return { iconName: 'sunny-outline', label: 'Morning Block (Sightseeing)', color: '#b45309', bg: '#fef3c7' };
+    if (rawBlock === 'Afternoon') return { iconName: 'restaurant-outline', label: 'Afternoon Block (Lunch)', color: '#0369a1', bg: '#e0f2fe' };
+    if (rawBlock === 'Evening') return { iconName: 'camera-outline', label: 'Evening Block (Sunset & Photo)', color: '#c2410c', bg: '#ffedd5' };
+    if (rawBlock === 'Night') return { iconName: 'moon-outline', label: 'Night Block (Dinner & Stay)', color: '#4338ca', bg: '#e0e7ff' };
 
     const t = String(activity.time || '').toLowerCase();
     if (t.includes('8:') || t.includes('9:') || t.includes('10:') || index === 0) {
-      return { icon: '🌅', label: 'Morning Block (Sightseeing)', color: '#b45309', bg: '#fef3c7' };
+      return { iconName: 'sunny-outline', label: 'Morning Block (Sightseeing)', color: '#b45309', bg: '#fef3c7' };
     }
     if (t.includes('12:') || t.includes('1:') || t.includes('2:') || index === 1) {
-      return { icon: '🥪', label: 'Afternoon Block (Lunch)', color: '#0369a1', bg: '#e0f2fe' };
+      return { iconName: 'restaurant-outline', label: 'Afternoon Block (Lunch)', color: '#0369a1', bg: '#e0f2fe' };
     }
     if (t.includes('4:') || t.includes('5:') || t.includes('6:') || index === 2) {
-      return { icon: '📸', label: 'Evening Block (Sunset & Photo)', color: '#c2410c', bg: '#ffedd5' };
+      return { iconName: 'camera-outline', label: 'Evening Block (Sunset & Photo)', color: '#c2410c', bg: '#ffedd5' };
     }
-    return { icon: '🌙', label: 'Night Block (Dinner & Stay)', color: '#4338ca', bg: '#e0e7ff' };
+    return { iconName: 'moon-outline', label: 'Night Block (Dinner & Stay)', color: '#4338ca', bg: '#e0e7ff' };
   }
 
   return (
@@ -90,7 +90,7 @@ export default function ItineraryScreen({ navigation, route }) {
       <StatusBar style="light" />
       <ScreenHeader
         title={`${trip.destination} itinerary`}
-        subtitle={`${trip.days} Days (${nights} Nights) • ${numPersons} ${numPersons === 1 ? 'Person' : 'Persons'} • ${activityCount} planned stops`}
+        subtitle={`${trip.days} Days (${nights} Nights) - ${numPersons} ${numPersons === 1 ? 'Person' : 'Persons'} - ${activityCount} planned stops`}
         onBack={handleBack}
       >
         <Text style={styles.budget}>PKR {Number(totalPackageCost).toLocaleString()}</Text>
@@ -132,27 +132,26 @@ export default function ItineraryScreen({ navigation, route }) {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Spec badges */}
-        {/* Spec badges */}
         <View style={styles.specChips}>
           {trip.tripMode ? (
             <View style={[styles.specChip, { backgroundColor: trip.tripMode === 'company' ? '#0369a1' : colors.forest }]}>
               <Text style={[styles.specChipText, { color: '#ffffff', fontWeight: 'bold' }]}>
-                {trip.tripMode === 'company' ? '🏢 Company Services' : '🛠️ Customized Plan'}
+                {trip.tripMode === 'company' ? 'Company Services' : 'Customized Plan'}
               </Text>
             </View>
           ) : null}
           {trip.transportChoice === 'own' ? (
             <View style={[styles.specChip, { backgroundColor: '#15803d' }]}>
-              <Text style={[styles.specChipText, { color: '#ffffff', fontWeight: 'bold' }]}>🚗 Own Car (Rs. 0 rent)</Text>
+              <Text style={[styles.specChipText, { color: '#ffffff', fontWeight: 'bold' }]}>Own Car (Rs. 0 rent)</Text>
             </View>
           ) : trip.transportation ? (
-            <View style={styles.specChip}><Text style={styles.specChipText}>🚗 {trip.transportation}</Text></View>
+            <View style={styles.specChip}><Text style={styles.specChipText}>{trip.transportation}</Text></View>
           ) : null}
           {trip.travelType ? (
-            <View style={styles.specChip}><Text style={styles.specChipText}>👥 {trip.travelType}</Text></View>
+            <View style={styles.specChip}><Text style={styles.specChipText}>{trip.travelType}</Text></View>
           ) : null}
           {trip.comfortLevel ? (
-            <View style={styles.specChip}><Text style={styles.specChipText}>⭐ {trip.comfortLevel}</Text></View>
+            <View style={styles.specChip}><Text style={styles.specChipText}>{trip.comfortLevel}</Text></View>
           ) : null}
         </View>
 
@@ -161,7 +160,7 @@ export default function ItineraryScreen({ navigation, route }) {
           <View style={styles.routeHeaderRow}>
             <AppIcon name="navigate-outline" size={16} color={colors.forest} />
             <Text style={styles.routeHeaderText}>
-              From <Text style={{ fontWeight: '900', color: colors.forest }}>{trip.startLocation || 'Islamabad'}</Text> ➔ <Text style={{ fontWeight: '900', color: colors.forest }}>{trip.destination}</Text>
+              From <Text style={{ fontWeight: '900', color: colors.forest }}>{trip.startLocation || 'Islamabad'}</Text> to <Text style={{ fontWeight: '900', color: colors.forest }}>{trip.destination}</Text>
             </Text>
           </View>
           {trip.preferredRoute ? (
@@ -176,13 +175,13 @@ export default function ItineraryScreen({ navigation, route }) {
             <View style={styles.routeDateRow}>
               <AppIcon name="calendar-outline" size={14} color={colors.muted} />
               <Text style={styles.routeDateText}>
-                {trip.startDate} {trip.endDate ? `➔ ${trip.endDate}` : ''} ({trip.days} Days / {Math.max(1, trip.days - 1)} Nights)
+                {trip.startDate} {trip.endDate ? `to ${trip.endDate}` : ''} ({trip.days} Days / {Math.max(1, trip.days - 1)} Nights)
               </Text>
             </View>
           ) : null}
           {trip.category ? (
             <View style={styles.catBadge}>
-              <Text style={styles.catBadgeText}>🏷️ Category: {trip.category}</Text>
+              <Text style={styles.catBadgeText}>Category: {trip.category}</Text>
             </View>
           ) : null}
         </View>
@@ -210,7 +209,7 @@ export default function ItineraryScreen({ navigation, route }) {
             <View style={styles.tourPackagePerPersonBox}>
               <Text style={styles.tourPackagePerPersonPrice}>PKR {Number(pricePerPerson).toLocaleString()} / person</Text>
               <Text style={styles.tourPackagePerPersonSub}>
-                {trip.days} Days ({nights} Nights) • {numPersons} {numPersons === 1 ? 'Person' : 'Persons'}
+                {trip.days} Days ({nights} Nights) - {numPersons} {numPersons === 1 ? 'Person' : 'Persons'}
               </Text>
             </View>
           </View>
@@ -227,12 +226,12 @@ export default function ItineraryScreen({ navigation, route }) {
                 {trip.hotelRequired === false ? 'No Hotel Required' : (pkg.roomType || (trip.hotel?.comfortLevel === 'Luxury' ? 'VIP Luxury Suite' : 'Deluxe Room'))}
               </Text>
               <Text style={styles.pillarSubText} numberOfLines={1}>
-                🏨 {trip.hotelRequired === false ? 'Arranged Personally (Rs. 0)' : (trip.hotel?.name || pkg.hotelName || 'Curated Hotel')}
+                {trip.hotelRequired === false ? 'Arranged Personally (Rs. 0)' : (trip.hotel?.name || pkg.hotelName || 'Curated Hotel')}
               </Text>
-              <Text style={styles.pillarDetailText}>📍 {trip.destination}</Text>
+              <Text style={styles.pillarDetailText}>{trip.destination}</Text>
               <View style={[styles.pillarInclusionTag, trip.hotelRequired === false && { backgroundColor: '#dcfce7' }]}>
                 <Text style={[styles.pillarInclusionTagText, trip.hotelRequired === false && { color: '#15803d' }]}>
-                  {trip.hotelRequired === false ? '✓ Lodging Rs. 0' : '✓ Breakfast Included'}
+                  {trip.hotelRequired === false ? 'Lodging Rs. 0' : 'Breakfast Included'}
                 </Text>
               </View>
             </View>
@@ -247,14 +246,14 @@ export default function ItineraryScreen({ navigation, route }) {
                 {trip.transportChoice === 'own' ? 'Own Vehicle (Personal)' : (trip.vehicleDetails?.name || pkg.vehicleName || trip.transportation || 'Dedicated Tour Car')}
               </Text>
               <Text style={styles.pillarSubText} numberOfLines={1}>
-                🚗 {trip.transportChoice === 'own' ? 'Rent Rs. 0 (Not cut)' : (pkg.fuelStatus || 'AC + Fuel + Tolls')}
+                {trip.transportChoice === 'own' ? 'Rent Rs. 0 (Not cut)' : (pkg.fuelStatus || 'AC + Fuel + Tolls')}
               </Text>
               <Text style={styles.pillarDetailText} numberOfLines={1}>
-                👤 {trip.vehicleDetails?.driverIncluded !== false ? 'Driver Included' : 'Self-Drive (Rs. 0)'}
+                {trip.vehicleDetails?.driverIncluded !== false ? 'Driver Included' : 'Self-Drive (Rs. 0)'}
               </Text>
               <View style={[styles.pillarInclusionTag, { backgroundColor: '#e0f2fe' }]}>
                 <Text style={[styles.pillarInclusionTagText, { color: '#0369a1' }]}>
-                  {trip.transportChoice === 'own' ? '✓ Own Vehicle' : '✓ Private Rental'}
+                  {trip.transportChoice === 'own' ? 'Own Vehicle' : 'Private Rental'}
                 </Text>
               </View>
             </View>
@@ -269,14 +268,14 @@ export default function ItineraryScreen({ navigation, route }) {
                 {trip.foodPlan?.foodChoice === 'self' ? 'Self-Arranged' : 'Breakfast + Dinner'}
               </Text>
               <Text style={styles.pillarSubText}>
-                🍳 Breakfast: {trip.foodPlan?.foodChoice === 'self' ? 'Self-paid (Rs. 0)' : 'Hotel Room'}
+                Breakfast: {trip.foodPlan?.foodChoice === 'self' ? 'Self-paid (Rs. 0)' : 'Hotel Room'}
               </Text>
               <Text style={styles.pillarSubText}>
-                🍽️ Dinner: {trip.foodPlan?.foodChoice === 'self' ? 'Self-paid (Rs. 0)' : 'In Package'}
+                Dinner: {trip.foodPlan?.foodChoice === 'self' ? 'Self-paid (Rs. 0)' : 'In Package'}
               </Text>
               <View style={[styles.pillarInclusionTag, { backgroundColor: '#fef3c7' }]}>
                 <Text style={[styles.pillarInclusionTagText, { color: '#b45309' }]}>
-                  {trip.foodPlan?.foodChoice === 'self' ? '🥡 Self-Paid (Rs. 0)' : '🥪 Lunch Self-Paid'}
+                  {trip.foodPlan?.foodChoice === 'self' ? 'Self-Paid (Rs. 0)' : 'Lunch Self-Paid'}
                 </Text>
               </View>
             </View>
@@ -295,15 +294,15 @@ export default function ItineraryScreen({ navigation, route }) {
             </View>
             <View style={styles.connectivityDetailsRow}>
               <View style={styles.connectivitySpecChip}>
-                <Text style={styles.connectivitySpecLabel}>📶 4G DATA</Text>
+                <Text style={styles.connectivitySpecLabel}>4G DATA</Text>
                 <Text style={styles.connectivitySpecValue}>30 GB High-Speed</Text>
               </View>
               <View style={styles.connectivitySpecChip}>
-                <Text style={styles.connectivitySpecLabel}>📞 CALLS</Text>
+                <Text style={styles.connectivitySpecLabel}>CALLS</Text>
                 <Text style={styles.connectivitySpecValue}>100 All-Net Mins</Text>
               </View>
               <View style={styles.connectivitySpecChip}>
-                <Text style={styles.connectivitySpecLabel}>🏷️ SIM PACK</Text>
+                <Text style={styles.connectivitySpecLabel}>SIM PACK</Text>
                 <Text style={styles.connectivitySpecValue}>Telenor 300</Text>
               </View>
             </View>
@@ -325,12 +324,12 @@ export default function ItineraryScreen({ navigation, route }) {
                   <View style={[styles.allocSegment, { flex: 5, backgroundColor: '#0284c7' }]} />
                 </View>
                 <View style={styles.allocLegendRow}>
-                  <Text style={styles.allocLegendText}>🚗 Transport (30%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.transport || 0).toLocaleString()}</Text></Text>
-                  <Text style={styles.allocLegendText}>🏨 Hotel (35%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.hotels || 0).toLocaleString()}</Text></Text>
-                  <Text style={styles.allocLegendText}>🍽️ Food (15%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.food || 0).toLocaleString()}</Text></Text>
-                  <Text style={styles.allocLegendText}>🎯 Sights (5%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.activities || 0).toLocaleString()}</Text></Text>
-                  <Text style={styles.allocLegendText}>🏢 Company Profit (10%): <Text style={{ fontWeight: 'bold', color: '#0d9488' }}>PKR {(alloc.companyProfit || Math.round(Number(trip.budget || 0) * 0.10)).toLocaleString()}</Text></Text>
-                  <Text style={styles.allocLegendText}>🛡️ Safety (5%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.safetyMargin || 0).toLocaleString()}</Text></Text>
+                  <Text style={styles.allocLegendText}>Transport (30%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.transport || 0).toLocaleString()}</Text></Text>
+                  <Text style={styles.allocLegendText}>Hotel (35%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.hotels || 0).toLocaleString()}</Text></Text>
+                  <Text style={styles.allocLegendText}>Food (15%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.food || 0).toLocaleString()}</Text></Text>
+                  <Text style={styles.allocLegendText}>Sights (5%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.activities || 0).toLocaleString()}</Text></Text>
+                  <Text style={styles.allocLegendText}>Company Profit (10%): <Text style={{ fontWeight: 'bold', color: '#0d9488' }}>PKR {(alloc.companyProfit || Math.round(Number(trip.budget || 0) * 0.10)).toLocaleString()}</Text></Text>
+                  <Text style={styles.allocLegendText}>Safety (5%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.safetyMargin || 0).toLocaleString()}</Text></Text>
                 </View>
               </>
             ) : (
@@ -343,11 +342,11 @@ export default function ItineraryScreen({ navigation, route }) {
                   <View style={[styles.allocSegment, { flex: 5, backgroundColor: '#0284c7' }]} />
                 </View>
                 <View style={styles.allocLegendRow}>
-                  <Text style={styles.allocLegendText}>🚗 Transport (35%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.transport || 0).toLocaleString()}</Text></Text>
-                  <Text style={styles.allocLegendText}>🏨 Hotel (35%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.hotels || 0).toLocaleString()}</Text></Text>
-                  <Text style={styles.allocLegendText}>🍽️ Food (15%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.food || 0).toLocaleString()}</Text></Text>
-                  <Text style={styles.allocLegendText}>🎯 Sights (10%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.activities || 0).toLocaleString()}</Text></Text>
-                  <Text style={styles.allocLegendText}>🛡️ Safety (5%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.safetyMargin || 0).toLocaleString()}</Text></Text>
+                  <Text style={styles.allocLegendText}>Transport (35%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.transport || 0).toLocaleString()}</Text></Text>
+                  <Text style={styles.allocLegendText}>Hotel (35%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.hotels || 0).toLocaleString()}</Text></Text>
+                  <Text style={styles.allocLegendText}>Food (15%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.food || 0).toLocaleString()}</Text></Text>
+                  <Text style={styles.allocLegendText}>Sights (10%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.activities || 0).toLocaleString()}</Text></Text>
+                  <Text style={styles.allocLegendText}>Safety (5%): <Text style={{ fontWeight: 'bold' }}>PKR {(alloc.safetyMargin || 0).toLocaleString()}</Text></Text>
                 </View>
               </>
             )}
@@ -366,7 +365,7 @@ export default function ItineraryScreen({ navigation, route }) {
                 '24/7 Tour coordination & helpline support',
                 ...(trip.tripMode === 'company' ? ['10% Company service management & profit included in budget'] : []),
               ]).map((inc, i) => (
-                <Text key={i} style={styles.inclusionItem}>✓ {inc}</Text>
+                <Text key={i} style={styles.inclusionItem}>- {inc}</Text>
               ))}
             </View>
           </View>
@@ -395,7 +394,7 @@ export default function ItineraryScreen({ navigation, route }) {
           <View style={styles.weatherTripPill}>
             <AppIcon name="partly-sunny" size={16} color="#0369a1" />
             <Text style={styles.weatherTripText}>
-              {trip.destination} Weather: <Text style={{ fontWeight: '900', color: '#0369a1' }}>{trip.weather?.temp !== undefined ? `${trip.weather.temp}°C` : '18°C'}</Text> • {trip.weather?.description || trip.weather?.main || 'Clear skies'} (Wind: {trip.weather?.wind || 3.2} m/s)
+              {trip.destination} Weather: <Text style={{ fontWeight: '900', color: '#0369a1' }}>{trip.weather?.temp !== undefined ? `${trip.weather.temp} C` : '18 C'}</Text> - {trip.weather?.description || trip.weather?.main || 'Clear skies'} (Wind: {trip.weather?.wind || 3.2} m/s)
             </Text>
           </View>
 
@@ -406,7 +405,7 @@ export default function ItineraryScreen({ navigation, route }) {
               {advisory.alerts.map((alt, idx) => (
                 <View key={idx} style={[styles.hazardBadge, alt.severity === 'danger' && styles.hazardBadgeDanger]}>
                   <Text style={[styles.hazardBadgeText, alt.severity === 'danger' && styles.hazardBadgeTextDanger]}>
-                    ⚠️ {String(alt.hazard || 'ALERT').toUpperCase()}: {alt.title}
+                    [ALERT] {String(alt.hazard || 'ALERT').toUpperCase()}: {alt.title}
                   </Text>
                   {alt.message ? <Text style={styles.hazardDetailMsg}>{alt.message}</Text> : null}
                 </View>
@@ -425,7 +424,7 @@ export default function ItineraryScreen({ navigation, route }) {
           <View style={styles.emergencyStrip}>
             <Text style={styles.emergencyStripLabel}>EMERGENCY HELPLINES:</Text>
             <Text style={styles.emergencyStripNumbers}>
-              Motorway Police: <Text style={{ fontWeight: '900' }}>130</Text> • Rescue: <Text style={{ fontWeight: '900' }}>1122</Text> • Tourism Police: <Text style={{ fontWeight: '900' }}>1422</Text>
+              Motorway Police: <Text style={{ fontWeight: '900' }}>130</Text> | Rescue: <Text style={{ fontWeight: '900' }}>1122</Text> | Tourism Police: <Text style={{ fontWeight: '900' }}>1422</Text>
             </Text>
           </View>
         </View>
@@ -463,7 +462,7 @@ export default function ItineraryScreen({ navigation, route }) {
                 <AppIcon name="bed-outline" size={16} color={colors.forest} />
                 <Text style={styles.hotelStayText}>
                   Hotel: <Text style={{ fontWeight: '900', color: colors.forest }}>{trip.hotel.name}</Text>
-                  {trip.hotel.selectedRoom ? ` (${trip.hotel.selectedRoom.type})` : ''} • PKR {Number(trip.budgetSummary.hotelCost || 0).toLocaleString()}
+                  {trip.hotel.selectedRoom ? ` (${trip.hotel.selectedRoom.type})` : ''} - PKR {Number(trip.budgetSummary.hotelCost || 0).toLocaleString()}
                 </Text>
               </View>
             ) : null}
@@ -502,9 +501,10 @@ export default function ItineraryScreen({ navigation, route }) {
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 1, marginRight: 6 }}>
                     <Text style={styles.time}>{activity.time}</Text>
                     {blockInfo ? (
-                      <View style={[styles.timeBlockBadge, { backgroundColor: blockInfo.bg }]}>
+                      <View style={[styles.timeBlockBadge, { backgroundColor: blockInfo.bg, flexDirection: 'row', alignItems: 'center' }]}>
+                        <AppIcon name={blockInfo.iconName} size={12} color={blockInfo.color} style={{ marginRight: 4 }} />
                         <Text style={[styles.timeBlockBadgeText, { color: blockInfo.color }]}>
-                          {blockInfo.icon} {blockInfo.label}
+                          {blockInfo.label}
                         </Text>
                       </View>
                     ) : null}
@@ -516,7 +516,7 @@ export default function ItineraryScreen({ navigation, route }) {
 
                 {activity.mealPolicy ? (
                   <View style={styles.mealPolicyPill}>
-                    <Text style={styles.mealPolicyPillText}>🍽️ {activity.mealPolicy}</Text>
+                    <Text style={styles.mealPolicyPillText}>{activity.mealPolicy}</Text>
                   </View>
                 ) : null}
 

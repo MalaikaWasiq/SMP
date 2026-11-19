@@ -165,7 +165,7 @@ export default function MapScreen({ navigation, route }) {
           accessibilityLabel={`Return to ${currentTrip.destination} itinerary`}
         >
           <AppIcon name="arrow-back" size={17} color="#ffffff" style={{ marginRight: 8 }} />
-          <Text style={styles.backToItineraryBigText}>← Back to {currentTrip.destination} Itinerary (Day Plan)</Text>
+          <Text style={styles.backToItineraryBigText}>Back to {currentTrip.destination} Itinerary (Day Plan)</Text>
         </TouchableOpacity>
       </View>
 
@@ -208,7 +208,7 @@ export default function MapScreen({ navigation, route }) {
                   )}
                 </View>
                 <Text style={[styles.tripDays, isSelected && styles.tripDaysOn]}>
-                  {trip.days} days • {dateStr}
+                  {trip.days} days - {dateStr}
                 </Text>
               </TouchableOpacity>
             );

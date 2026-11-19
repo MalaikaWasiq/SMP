@@ -71,7 +71,7 @@ export default function BudgetScreen({ navigation }) {
           accessibilityLabel={`Return to ${currentTrip.destination} itinerary`}
         >
           <AppIcon name="arrow-back" size={17} color="#ffffff" style={{ marginRight: 8 }} />
-          <Text style={styles.backToItineraryBigText}>← Back to {currentTrip.destination} Itinerary (Day Plan)</Text>
+          <Text style={styles.backToItineraryBigText}>Back to {currentTrip.destination} Itinerary (Day Plan)</Text>
         </TouchableOpacity>
       </View>
 

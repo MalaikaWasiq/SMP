@@ -24,7 +24,6 @@ const CATEGORIES_DATA = [
   {
     id: 'Adventure & Nature',
     title: 'Adventure & Nature',
-    iconEmoji: '🏔️',
     iconName: 'compass-outline',
     image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80',
     desc: 'Discover breathtaking landscapes, thrilling adventures, hiking trails, valleys, lakes, and peaceful escapes across Pakistan.',
@@ -35,7 +34,6 @@ const CATEGORIES_DATA = [
   {
     id: 'Northern Areas',
     title: 'Northern Areas',
-    iconEmoji: '❄️',
     iconName: 'snow-outline',
     image: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80',
     desc: "Explore Pakistan's majestic mountains, beautiful valleys, glaciers, lakes, and unforgettable northern landscapes.",
@@ -46,7 +44,6 @@ const CATEGORIES_DATA = [
   {
     id: 'Cultural & Historical',
     title: 'Cultural & Historical',
-    iconEmoji: '🏛️',
     iconName: 'shield-outline',
     image: 'https://images.unsplash.com/photo-1588714477688-cf28a50e94f7?w=800&q=80',
     desc: "Experience Pakistan's rich history, ancient civilizations, magnificent forts, heritage sites, and vibrant cultural cities.",
@@ -57,7 +54,6 @@ const CATEGORIES_DATA = [
   {
     id: 'Coastal Areas',
     title: 'Coastal Areas',
-    iconEmoji: '🌊',
     iconName: 'water-outline',
     image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
     desc: "Relax by Pakistan's beautiful coastline, explore beaches and islands, and discover unforgettable coastal adventures.",
@@ -234,9 +230,9 @@ export default function HomeScreen({ navigation }) {
       categoryData: {
         id: 'All',
         title: 'All Destinations in Pakistan',
-        iconEmoji: '🇵🇰',
+        iconName: 'map-outline',
         image: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&q=80',
-        desc: 'Explore all 48 curated destinations across Pakistan — from northern glaciers and alpine meadows to ancient heritage forts and sunny coastal beaches.',
+        desc: 'Explore all 48 curated destinations across Pakistan - from northern glaciers and alpine meadows to ancient heritage forts and sunny coastal beaches.',
       },
     });
   }
@@ -283,7 +279,7 @@ export default function HomeScreen({ navigation }) {
           {/* =====================================================================
               1. TOP HEADER SECTION (Matches Reference Image 1)
               - Handwritten slogan: "Pakistan is always a good idea"
-              - Centered greeting: "Hi, {displayName} 👋"
+              - Centered greeting: "Hi, {displayName}"
               - Subtitle: "Plan smarter. Travel better. Explore Pakistan."
               - Search bar with black [Search] button
               - Profile avatar on right
@@ -314,11 +310,11 @@ export default function HomeScreen({ navigation }) {
                   <AppIcon name="triangle" size={16} color="#0f5132" style={{ marginRight: -4 }} />
                   <AppIcon name="triangle" size={22} color="#166534" />
                 </View>
-                <AppText style={styles.greetingText}>Hi, {displayName} 👋</AppText>
+                <AppText style={styles.greetingText}>Hi, {displayName}</AppText>
               </View>
 
               <AppText style={styles.quoteSubtitle}>
-                Plan smarter · Travel better · Explore Pakistan
+                Plan smarter - Travel better - Explore Pakistan
               </AppText>
             </View>
 
@@ -355,7 +351,7 @@ export default function HomeScreen({ navigation }) {
           </View>
 
           {/* =====================================================================
-              2. SECTION DIVIDER: "— Explore Pakistan —"
+              2. SECTION DIVIDER: "- Explore Pakistan -"
              ===================================================================== */}
           <View style={styles.sectionDividerRow}>
             <View style={styles.sectionDividerLine} />
@@ -394,7 +390,9 @@ export default function HomeScreen({ navigation }) {
                   />
                   <View style={styles.categoryCardContent}>
                     <View style={styles.categoryTitleRow}>
-                      <AppText style={styles.categoryCardEmoji}>{cat.iconEmoji}</AppText>
+                      <View style={[styles.categoryCardIconWrap, { backgroundColor: cat.bg }]}>
+                        <AppIcon name={cat.iconName} size={15} color={cat.color} />
+                      </View>
                       <AppText style={styles.categoryCardTitle} numberOfLines={1}>
                         {cat.title}
                       </AppText>
@@ -402,34 +400,36 @@ export default function HomeScreen({ navigation }) {
                     <AppText style={styles.categoryCardDesc} numberOfLines={3}>
                       {cat.desc}
                     </AppText>
-                    <AppText style={[styles.categoryCardCount, isSelected && styles.categoryCardCountActive]}>
-                      📍 {count} destinations &gt;
-                    </AppText>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <AppIcon name="location-outline" size={12} color={isSelected ? colors.forest : '#64748b'} />
+                      <AppText style={[styles.categoryCardCount, isSelected && styles.categoryCardCountActive]}>
+                        {count} destinations
+                      </AppText>
+                    </View>
                   </View>
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          {/* Search results only shown when user is actively searching */}
-          {q.length > 0 && (
+          {/* Destinations Section: Shows search results when querying, or active category destinations when browsing */}
           <View style={styles.destinationsSection}>
             <View style={styles.categoryHeaderRow}>
               <View style={styles.categoryHeadingLeft}>
                 <AppText style={styles.categoryHeadingTitle}>
-                  {`Search Results ("${searchQuery}")`}
+                  {q.length > 0 ? `Search Results ("${searchQuery}")` : `${activeCategory} Destinations`}
                 </AppText>
               </View>
 
               <TouchableOpacity
-                onPress={handleClearSearch}
+                onPress={q.length > 0 ? handleClearSearch : handleShowAllCategory}
                 hitSlop={8}
                 style={styles.showAllButton}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel="Clear search filter"
+                accessibilityLabel={q.length > 0 ? "Clear search filter" : "Show all destinations"}
               >
-                <AppText style={styles.showAllText}>Clear search</AppText>
+                <AppText style={styles.showAllText}>{q.length > 0 ? 'Clear search' : 'Show all'}</AppText>
                 <AppIcon name="chevron-forward" size={14} color="#186443" style={{ marginLeft: 3 }} />
               </TouchableOpacity>
             </View>
@@ -482,7 +482,8 @@ export default function HomeScreen({ navigation }) {
                         </AppText>
                         {dest.isMapLocation ? (
                           <View style={styles.mapGeocodedPill}>
-                            <AppText style={styles.mapGeocodedPillText}>📍 Live Map ({dest.region || 'Pakistan'})</AppText>
+                            <AppIcon name="location" size={12} color="#166534" />
+                            <AppText style={styles.mapGeocodedPillText}>Live Map ({dest.region || 'Pakistan'})</AppText>
                           </View>
                         ) : (
                           <AppText style={styles.cityCardRegion} numberOfLines={1}>
@@ -509,7 +510,6 @@ export default function HomeScreen({ navigation }) {
               </View>
             )}
           </View>
-          )}
 
         </View>
       </ScrollView>
@@ -660,7 +660,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  /* 2. SECTION DIVIDER: "— Explore Pakistan —" */
+  /* 2. SECTION DIVIDER: "- Explore Pakistan -" */
   sectionDividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -725,8 +725,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  categoryCardEmoji: {
-    fontSize: 15,
+  categoryCardIconWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   categoryCardTitle: {
     fontSize: 15,
